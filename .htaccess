@@ -1,9 +1,7 @@
-# VOID API — Apache config
-# Allow PHP files, block direct access to /includes and /data
-
 Options -Indexes
 RewriteEngine On
 
-<Directory /var/www/html>
-    AllowOverride All
-</Directory>
+<FilesMatch "\.(sqlite|db|log)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
