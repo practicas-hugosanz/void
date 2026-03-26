@@ -132,6 +132,18 @@ switch ($action) {
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
+        // ── Verificar whitelist ──────────────────────────────────────────────
+        $wlStmt = $db->prepare("SELECT status FROM whitelist WHERE email = ?");
+        $wlStmt->execute([$email]);
+        $wlRow = $wlStmt->fetch();
+
+        if (!$wlRow || $wlRow['status'] !== 'approved') {
+            $reason = !$wlRow
+                ? 'no_request'
+                : $wlRow['status']; // 'pending' o 'rejected'
+            redirectWithError('Tu cuenta no tiene acceso aprobado a VOID. Solicita acceso a la Whitelist.|wl:' . $reason);
+        }
+
         if (!$user) {
             // Registrar nuevo usuario (sin contraseña — acceso sólo vía OAuth)
             $fakeHash = password_hash(bin2hex(random_bytes(32)), PASSWORD_BCRYPT);

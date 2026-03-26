@@ -694,7 +694,7 @@ body::before {
 }
 .auth-logo { font-family: var(--font-head); font-size: 1.8rem; font-weight: 800; color: var(--accent); margin-bottom: 8px; letter-spacing: -0.04em; }
 .auth-headline { font-family: var(--font-head); font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.03em; }
-.auth-sub { color: var(--text2); font-size: 0.88rem; margin-bottom: 36px; }
+.auth-sub { color: var(--text2); font-size: 0.88rem; margin-bottom: 32px; }
 .auth-tabs { display: flex; gap: 0; background: var(--bg3); border-radius: 12px; padding: 4px; margin-bottom: 32px; }
 .auth-tab {
   flex: 1; padding: 10px; border-radius: 9px; border: none;
@@ -748,7 +748,7 @@ body::before {
   background: var(--surface2); border: 1px solid var(--border2);
   color: var(--text); font-family: var(--font-body); font-size: 0.9rem; font-weight: 500;
   cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
-  margin-top: 10px;
+  margin-top: 4px;
 }
 .btn-github::before {
   content: ''; position: absolute; inset: 0;
@@ -1059,6 +1059,14 @@ body::before {
 .modal-title { font-family: var(--font-head); font-size: 1.2rem; font-weight: 700; }
 .modal-close { background: none; border: none; color: var(--muted); transition: color 0.2s; }
 .modal-close:hover { color: var(--text); }
+.modal-back {
+  position: absolute; top: 20px; left: 24px;
+  display: flex; align-items: center; gap: 8px;
+  color: var(--muted); background: none; border: none; cursor: pointer;
+  font-family: var(--font-body); font-size: 0.82rem;
+  transition: color 0.2s; z-index: 10; padding: 0;
+}
+.modal-back:hover { color: var(--accent); }
 .modal-body { padding: 24px 28px; overflow-y: auto; flex: 1; }
 .modal-desc { color: var(--text2); font-size: 0.9rem; line-height: 1.6; margin-bottom: 24px; }
 .modal-footer { padding: 16px 28px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; background: var(--bg3); border-radius: 0 0 24px 24px; flex-shrink: 0; }
@@ -1467,6 +1475,7 @@ body::before {
 .wl-auth-link {
   background: none; border: none; cursor: pointer;
   color: var(--accent); font-size: 0.82rem; font-weight: 600;
+  font-family: var(--font-body);
   padding: 0; text-decoration: underline; text-underline-offset: 3px;
   transition: opacity 0.2s;
 }
@@ -1474,25 +1483,28 @@ body::before {
 
 /* ── Whitelist Request Modal ────────────────────────────────────────── */
 .whitelist-modal {
-  max-width: 420px;
+  max-width: 460px;
   text-align: center;
+  padding: 56px 36px 40px;
+  overflow-y: auto;
 }
 .wl-modal-icon {
-  width: 56px; height: 56px; margin: 0 auto 20px;
+  width: 60px; height: 60px; margin: 0 auto 24px;
   border-radius: 50%; background: color-mix(in srgb, var(--accent) 12%, transparent);
   display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
 .wl-modal-icon svg {
-  width: 28px; height: 28px; color: var(--accent); stroke: var(--accent);
+  width: 30px; height: 30px; color: var(--accent); stroke: var(--accent);
 }
 .wl-modal-title {
-  font-size: 1.3rem; font-weight: 700; margin: 0 0 10px; color: var(--text);
+  font-size: 1.4rem; font-weight: 700; margin: 0 0 12px; color: var(--text);
 }
 .wl-modal-sub {
-  font-size: 0.875rem; color: var(--muted); margin: 0 0 24px; line-height: 1.5;
+  font-size: 0.9rem; color: var(--muted); margin: 0 0 28px; line-height: 1.6;
 }
-#wl-request-form .form-field { text-align: left; }
-#wl-request-form .btn-submit { width: 100%; margin-top: 12px; }
+#wl-request-form .form-field { text-align: left; margin-bottom: 16px; }
+#wl-request-form .btn-submit { width: 100%; margin-top: 16px; }
 
 .wl-success {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
@@ -1505,20 +1517,21 @@ body::before {
 
 /* ── Admin Panel Modal ──────────────────────────────────────────────── */
 .admin-modal {
-  max-width: 700px;
+  max-width: 760px;
   width: 95vw;
   overflow-y: auto;
+  padding: 56px 40px 36px;
 }
 .admin-modal-header {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+  display: flex; align-items: center; gap: 14px; margin-bottom: 28px;
 }
 .admin-badge {
   background: var(--accent); color: #000; font-size: 0.65rem;
-  font-weight: 800; letter-spacing: 0.12em; padding: 3px 8px;
-  border-radius: 4px; text-transform: uppercase;
+  font-weight: 800; letter-spacing: 0.12em; padding: 4px 10px;
+  border-radius: 4px; text-transform: uppercase; white-space: nowrap; flex-shrink: 0;
 }
 .admin-modal-title {
-  font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text);
+  font-size: 1.3rem; font-weight: 700; margin: 0; color: var(--text);
 }
 .admin-loading, .admin-empty, .admin-error {
   text-align: center; color: var(--muted); padding: 32px 0; font-size: 0.9rem;
@@ -1527,33 +1540,33 @@ body::before {
 
 .admin-table-wrap { overflow-x: auto; }
 .admin-table {
-  width: 100%; border-collapse: collapse; font-size: 0.85rem;
+  width: 100%; border-collapse: collapse; font-size: 0.875rem;
 }
 .admin-table th {
-  text-align: left; padding: 8px 12px; color: var(--muted);
+  text-align: left; padding: 10px 14px; color: var(--muted);
   font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
   border-bottom: 1px solid var(--border); white-space: nowrap;
 }
 .admin-table td {
-  padding: 10px 12px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  padding: 12px 14px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
   color: var(--text); vertical-align: middle;
 }
 .admin-table tr:last-child td { border-bottom: none; }
-.admin-email { font-family: monospace; font-size: 0.82rem; word-break: break-all; }
-.admin-date { color: var(--muted); font-size: 0.78rem; white-space: nowrap; }
+.admin-email { font-family: monospace; font-size: 0.83rem; word-break: break-all; }
+.admin-date { color: var(--muted); font-size: 0.8rem; white-space: nowrap; }
 
 .admin-status {
   display: inline-block; font-size: 0.75rem; font-weight: 600;
-  padding: 2px 8px; border-radius: 100px;
+  padding: 3px 10px; border-radius: 100px;
 }
 .status-approved { background: color-mix(in srgb, #4ade80 15%, transparent); color: #4ade80; }
 .status-pending  { background: color-mix(in srgb, #facc15 15%, transparent); color: #facc15; }
 .status-rejected { background: color-mix(in srgb, #f87171 15%, transparent); color: #f87171; }
 
-.admin-actions { display: flex; gap: 6px; white-space: nowrap; }
+.admin-actions { display: flex; gap: 8px; white-space: nowrap; }
 .btn-admin-approve, .btn-admin-reject {
   border: none; cursor: pointer; border-radius: 6px;
-  font-size: 0.76rem; font-weight: 600; padding: 4px 10px;
+  font-size: 0.78rem; font-weight: 600; padding: 5px 12px;
   transition: opacity 0.2s;
 }
 .btn-admin-approve:hover, .btn-admin-reject:hover { opacity: 0.75; }

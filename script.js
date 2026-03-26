@@ -133,8 +133,14 @@ const app = {
   switchAuthTab(mode) {
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('tab-' + mode).classList.add('active');
-    document.getElementById('form-' + mode).classList.add('active');
+    const tab = document.getElementById('tab-' + mode);
+    if (tab) tab.classList.add('active');
+    const form = document.getElementById('form-' + mode);
+    if (form) form.classList.add('active');
+    else {
+      const fallback = document.getElementById('form-login');
+      if (fallback) fallback.classList.add('active');
+    }
   },
 
   showToast(msg, type) {
@@ -1281,13 +1287,45 @@ const app = {
 
   initStatCounters() {
     const cells = document.querySelectorAll('[data-count]');
-    // Whitelist bar animation
-    const bar = document.querySelector('.l-whitelist-bar-fill');
+    // Whitelist bar — cargar dato real desde la API
+    const bar        = document.querySelector('.l-whitelist-bar-fill');
+    const labelSpan  = document.querySelector('.l-whitelist-bar-labels span:first-child');
+    const limitSpan  = document.querySelector('.l-whitelist-bar-limit');
+    const LIMIT      = 50;
+
     if (bar) {
-      const obs = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting) { bar.style.width = '6%'; obs.disconnect(); }
-      }, { threshold: 0.5 });
-      obs.observe(bar);
+      // Obtener conteo real de aprobados
+      fetch('/api/whitelist.php?action=count')
+        .then(r => r.json())
+        .then(data => {
+          const count = data.data?.count ?? 0;
+          const pct   = Math.min(Math.round((count / LIMIT) * 100), 100);
+
+          const obs = new IntersectionObserver(entries => {
+            if (!entries[0].isIntersecting) return;
+            obs.disconnect();
+            // Animar número
+            if (labelSpan) {
+              let cur = 0;
+              const step = Math.max(1, Math.ceil(count / 40));
+              const t = setInterval(() => {
+                cur = Math.min(cur + step, count);
+                labelSpan.textContent = cur + ' plaza' + (cur !== 1 ? 's' : '') + ' ocupada' + (cur !== 1 ? 's' : '');
+                if (cur >= count) clearInterval(t);
+              }, 30);
+            }
+            // Animar barra
+            bar.style.width = (pct || 1) + '%';
+          }, { threshold: 0.5 });
+          obs.observe(bar);
+        })
+        .catch(() => {
+          // Fallback silencioso — dejar en 0
+          const obs = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting) { bar.style.width = '1%'; obs.disconnect(); }
+          }, { threshold: 0.5 });
+          obs.observe(bar);
+        });
     }
     if (!cells.length) return;
     const observer = new IntersectionObserver(entries => {

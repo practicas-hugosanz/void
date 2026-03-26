@@ -32,6 +32,13 @@ $action = $_GET['action'] ?? '';
 
 switch ($action) {
 
+    // ── Contar aprobados (público) ─────────────────────────────────────────────
+    case 'count': {
+        $db  = get_db();
+        $row = $db->query("SELECT COUNT(*) as total FROM whitelist WHERE status = 'approved'")->fetch();
+        json_ok(['count' => (int)($row['total'] ?? 0)]);
+    }
+
     // ── Solicitar acceso ───────────────────────────────────────────────────────
     case 'request': {
         $body     = json_decode(file_get_contents('php://input'), true) ?? [];
