@@ -8,11 +8,16 @@
 const API_BASE = 'https://void-production-32d7.up.railway.app';
 
 const API = {
-  auth:  API_BASE + '/api/auth.php',
-  user:  API_BASE + '/api/user.php',
-  convs: API_BASE + '/api/conversations.php',
-  proxy: API_BASE + '/api/proxy.php',
+  auth:      API_BASE + '/api/auth.php',
+  user:      API_BASE + '/api/user.php',
+  convs:     API_BASE + '/api/conversations.php',
+  proxy:     API_BASE + '/api/proxy.php',
+  whitelist: API_BASE + '/api/whitelist.php',
 };
+
+// Admin secret — must match VOID_ADMIN_SECRET env var on the server
+// IMPORTANT: Change this to a strong secret and never commit it to a public repo
+const ADMIN_SECRET = 'void-admin-2025-secret';
 
 async function apiFetch(url, options = {}) {
   const res = await fetch(url, {
@@ -1151,6 +1156,7 @@ const app = {
     this.initDemoChat();
     this.initStatCounters();
     this.initFeatureCardGlow();
+    this.initAdminHotkey();
   },
 
   initFloatingChips() {
@@ -1310,6 +1316,159 @@ const app = {
         card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
         card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
       });
+    });
+  },
+
+
+  // ==========================================
+  // WHITELIST MODAL (usuario)
+  // ==========================================
+  openWhitelistModal() {
+    const modal = document.getElementById('modal-whitelist');
+    if (!modal) return;
+    // Reset state
+    document.getElementById('wl-request-form').style.display = '';
+    document.getElementById('wl-request-result').style.display = 'none';
+    document.getElementById('wl-name-input').value = '';
+    document.getElementById('wl-email-input').value = '';
+    document.getElementById('wl-password-input').value = '';
+    modal.classList.add('active');
+  },
+
+  closeWhitelistModal() {
+    document.getElementById('modal-whitelist').classList.remove('active');
+  },
+
+  async requestWhitelistAccess() {
+    const name  = document.getElementById('wl-name-input').value.trim();
+    const email = document.getElementById('wl-email-input').value.trim();
+    const pass  = document.getElementById('wl-password-input').value;
+    if (!name)  { this.showToast('⚠️ Introduce tu nombre'); return; }
+    if (!email) { this.showToast('⚠️ Introduce un email'); return; }
+    if (!pass || pass.length < 6) { this.showToast('⚠️ La contraseña debe tener al menos 6 caracteres'); return; }
+
+    const btn = document.querySelector('#modal-whitelist .btn-submit');
+    if (btn) btn.disabled = true;
+
+    const res = await apiFetch(API.whitelist + '?action=request', {
+      method: 'POST',
+      body: JSON.stringify({ name, email, password: pass }),
+    });
+
+    if (btn) btn.disabled = false;
+
+    const resultEl = document.getElementById('wl-request-result');
+    const formEl   = document.getElementById('wl-request-form');
+
+    if (res.ok) {
+      formEl.style.display = 'none';
+      resultEl.style.display = '';
+      resultEl.innerHTML = `
+        <div class="wl-success">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="40" height="40">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+          </svg>
+          <h3>Solicitud enviada</h3>
+          <p>Hola <strong>${name}</strong>, tu solicitud para <strong>${email}</strong> está en lista de espera. El administrador la revisará pronto.</p>
+          <button class="btn-submit" onclick="app.closeWhitelistModal()" style="margin-top:1.5rem">Entendido</button>
+        </div>`;
+    } else {
+      this.showToast('⚠️ ' + res.error);
+    }
+  },
+
+  // ==========================================
+  // ADMIN PANEL (Ctrl + Shift + Alt + A)
+  // ==========================================
+  openAdminModal() {
+    const modal = document.getElementById('modal-admin');
+    if (!modal) return;
+    modal.classList.add('active');
+    this.loadAdminWhitelist();
+  },
+
+  closeAdminModal() {
+    document.getElementById('modal-admin').classList.remove('active');
+  },
+
+  async loadAdminWhitelist() {
+    const listEl = document.getElementById('admin-wl-list');
+    listEl.innerHTML = '<p class="admin-loading">Cargando…</p>';
+
+    const res = await apiFetch(API.whitelist + '?action=list', {
+      headers: { 'X-Admin-Secret': ADMIN_SECRET },
+    });
+
+    if (!res.ok) {
+      listEl.innerHTML = '<p class="admin-error">⚠️ ' + res.error + '</p>';
+      return;
+    }
+
+    const rows = res.data;
+    if (!rows.length) {
+      listEl.innerHTML = '<p class="admin-empty">No hay solicitudes aún.</p>';
+      return;
+    }
+
+    const statusLabel = { approved: '✅ Aprobado', pending: '⏳ Pendiente', rejected: '❌ Rechazado' };
+    const statusClass = { approved: 'status-approved', pending: 'status-pending', rejected: 'status-rejected' };
+
+    listEl.innerHTML = `
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Estado</th>
+              <th>Solicitado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr id="admin-row-${r.id}">
+                <td class="admin-name">${r.name || '—'}</td>
+                <td class="admin-email">${r.email}</td>
+                <td><span class="admin-status ${statusClass[r.status] || ''}">${statusLabel[r.status] || r.status}</span></td>
+                <td class="admin-date">${r.requested_at.slice(0,16)}</td>
+                <td class="admin-actions">
+                  ${r.status !== 'approved' ? `<button class="btn-admin-approve" onclick="app.adminApprove('${r.email}', ${r.id})">Aprobar</button>` : ''}
+                  ${r.status !== 'rejected' ? `<button class="btn-admin-reject" onclick="app.adminReject('${r.email}', ${r.id})">Rechazar</button>` : ''}
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  },
+
+  async adminApprove(email, rowId) {
+    const res = await apiFetch(API.whitelist + '?action=approve', {
+      method: 'POST',
+      headers: { 'X-Admin-Secret': ADMIN_SECRET },
+      body: JSON.stringify({ email }),
+    });
+    if (res.ok) { this.showToast('✅ ' + email + ' aprobado'); this.loadAdminWhitelist(); }
+    else this.showToast('⚠️ ' + res.error);
+  },
+
+  async adminReject(email, rowId) {
+    const res = await apiFetch(API.whitelist + '?action=reject', {
+      method: 'POST',
+      headers: { 'X-Admin-Secret': ADMIN_SECRET },
+      body: JSON.stringify({ email }),
+    });
+    if (res.ok) { this.showToast('❌ ' + email + ' rechazado'); this.loadAdminWhitelist(); }
+    else this.showToast('⚠️ ' + res.error);
+  },
+
+  initAdminHotkey() {
+    // Combinación secreta: Ctrl + Shift + Alt + A
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.shiftKey && e.altKey && e.key === 'A') {
+        e.preventDefault();
+        this.openAdminModal();
+      }
     });
   },
 

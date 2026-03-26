@@ -1042,15 +1042,19 @@ body::before {
   padding: 16px;
 }
 .modal-overlay.active { opacity: 1; pointer-events: auto; }
-.modal-content {
+.modal-content,
+.modal {
   background: var(--surface); border: 1px solid var(--border2);
   border-radius: 24px; width: 100%; max-width: 480px;
   transform: translateY(20px); transition: transform 0.3s var(--ease);
   box-shadow: 0 40px 80px rgba(0,0,0,0.6);
   display: flex; flex-direction: column;
   max-height: calc(100vh - 32px);
+  padding: 32px;
+  position: relative;
 }
-.modal-overlay.active .modal-content { transform: translateY(0); }
+.modal-overlay.active .modal-content,
+.modal-overlay.active .modal { transform: translateY(0); }
 .modal-header { padding: 20px 28px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
 .modal-title { font-family: var(--font-head); font-size: 1.2rem; font-weight: 700; }
 .modal-close { background: none; border: none; color: var(--muted); transition: color 0.2s; }
@@ -1448,3 +1452,116 @@ body::before {
 /* Compact form fields inside profile modal */
 #modal-profile .form-field { margin-bottom: 14px; }
 #modal-profile .form-field:last-child { margin-bottom: 0; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   WHITELIST SYSTEM STYLES
+══════════════════════════════════════════════════════════════════════ */
+
+/* ── Whitelist CTA inside auth box ─────────────────────────────────── */
+.wl-auth-cta {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin-top: 20px; padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem; color: var(--muted);
+}
+.wl-auth-link {
+  background: none; border: none; cursor: pointer;
+  color: var(--accent); font-size: 0.82rem; font-weight: 600;
+  padding: 0; text-decoration: underline; text-underline-offset: 3px;
+  transition: opacity 0.2s;
+}
+.wl-auth-link:hover { opacity: 0.75; }
+
+/* ── Whitelist Request Modal ────────────────────────────────────────── */
+.whitelist-modal {
+  max-width: 420px;
+  text-align: center;
+}
+.wl-modal-icon {
+  width: 56px; height: 56px; margin: 0 auto 20px;
+  border-radius: 50%; background: color-mix(in srgb, var(--accent) 12%, transparent);
+  display: flex; align-items: center; justify-content: center;
+}
+.wl-modal-icon svg {
+  width: 28px; height: 28px; color: var(--accent); stroke: var(--accent);
+}
+.wl-modal-title {
+  font-size: 1.3rem; font-weight: 700; margin: 0 0 10px; color: var(--text);
+}
+.wl-modal-sub {
+  font-size: 0.875rem; color: var(--muted); margin: 0 0 24px; line-height: 1.5;
+}
+#wl-request-form .form-field { text-align: left; }
+#wl-request-form .btn-submit { width: 100%; margin-top: 12px; }
+
+.wl-success {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 16px 0;
+}
+.wl-success svg { color: #4ade80; stroke: #4ade80; }
+.wl-success h3 { font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--text); }
+.wl-success p { font-size: 0.875rem; color: var(--muted); margin: 0; line-height: 1.5; }
+.wl-success .btn-submit { width: 100%; }
+
+/* ── Admin Panel Modal ──────────────────────────────────────────────── */
+.admin-modal {
+  max-width: 700px;
+  width: 95vw;
+  overflow-y: auto;
+}
+.admin-modal-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+}
+.admin-badge {
+  background: var(--accent); color: #000; font-size: 0.65rem;
+  font-weight: 800; letter-spacing: 0.12em; padding: 3px 8px;
+  border-radius: 4px; text-transform: uppercase;
+}
+.admin-modal-title {
+  font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text);
+}
+.admin-loading, .admin-empty, .admin-error {
+  text-align: center; color: var(--muted); padding: 32px 0; font-size: 0.9rem;
+}
+.admin-error { color: #f87171; }
+
+.admin-table-wrap { overflow-x: auto; }
+.admin-table {
+  width: 100%; border-collapse: collapse; font-size: 0.85rem;
+}
+.admin-table th {
+  text-align: left; padding: 8px 12px; color: var(--muted);
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.admin-table td {
+  padding: 10px 12px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  color: var(--text); vertical-align: middle;
+}
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-email { font-family: monospace; font-size: 0.82rem; word-break: break-all; }
+.admin-date { color: var(--muted); font-size: 0.78rem; white-space: nowrap; }
+
+.admin-status {
+  display: inline-block; font-size: 0.75rem; font-weight: 600;
+  padding: 2px 8px; border-radius: 100px;
+}
+.status-approved { background: color-mix(in srgb, #4ade80 15%, transparent); color: #4ade80; }
+.status-pending  { background: color-mix(in srgb, #facc15 15%, transparent); color: #facc15; }
+.status-rejected { background: color-mix(in srgb, #f87171 15%, transparent); color: #f87171; }
+
+.admin-actions { display: flex; gap: 6px; white-space: nowrap; }
+.btn-admin-approve, .btn-admin-reject {
+  border: none; cursor: pointer; border-radius: 6px;
+  font-size: 0.76rem; font-weight: 600; padding: 4px 10px;
+  transition: opacity 0.2s;
+}
+.btn-admin-approve:hover, .btn-admin-reject:hover { opacity: 0.75; }
+.btn-admin-approve {
+  background: color-mix(in srgb, #4ade80 20%, transparent);
+  color: #4ade80; border: 1px solid color-mix(in srgb, #4ade80 40%, transparent);
+}
+.btn-admin-reject {
+  background: color-mix(in srgb, #f87171 20%, transparent);
+  color: #f87171; border: 1px solid color-mix(in srgb, #f87171 40%, transparent);
+}

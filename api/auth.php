@@ -13,9 +13,27 @@ cors();
 
 $action = $_GET['action'] ?? '';
 
+// Helper: check whitelist approval
+function check_whitelist(string $email): void {
+    $db   = get_db();
+    $stmt = $db->prepare("SELECT status FROM whitelist WHERE email = ?");
+    $stmt->execute([$email]);
+    $row  = $stmt->fetch();
+
+    if (!$row || $row['status'] !== 'approved') {
+        $status = $row ? $row['status'] : 'not_found';
+        if ($status === 'pending')
+            json_err('Tu solicitud de acceso está pendiente de aprobación.', 403);
+        elseif ($status === 'rejected')
+            json_err('Tu solicitud fue rechazada. Contacta al administrador.', 403);
+        else
+            json_err('Tu email no está en la whitelist. Solicita acceso primero.', 403);
+    }
+}
+
 switch ($action) {
 
-    // ── REGISTER ────────────────────────────────────────────────────────────
+    // ── REGISTER ─────────────────────────────────────────────────────────────
     case 'register': {
         $name  = trim(require_field('name',  'Nombre'));
         $email = strtolower(trim(require_field('email', 'Email')));
@@ -26,13 +44,9 @@ switch ($action) {
         if (strlen($pass) < 6)
             json_err('La contraseña debe tener al menos 6 caracteres');
 
-        $db = get_db();
-        $exists = $db->prepare("SELECT id FROM users WHERE email = ?")->execute([$email]);
-        if ($db->prepare("SELECT id FROM users WHERE email = ?")->execute([$email]) &&
-            $db->query("SELECT id FROM users WHERE email = '$email'")->fetch())
-            json_err('El email ya está registrado');
+        check_whitelist($email);
 
-        // Safer check
+        $db  = get_db();
         $chk = $db->prepare("SELECT id FROM users WHERE email = ?");
         $chk->execute([$email]);
         if ($chk->fetch()) json_err('El email ya está registrado');
@@ -49,10 +63,12 @@ switch ($action) {
         ]);
     }
 
-    // ── LOGIN ────────────────────────────────────────────────────────────────
+    // ── LOGIN ─────────────────────────────────────────────────────────────────
     case 'login': {
         $email = strtolower(trim(require_field('email', 'Email')));
         $pass  = require_field('password', 'Contraseña');
+
+        check_whitelist($email);
 
         $db   = get_db();
         $stmt = $db->prepare("SELECT * FROM users WHERE email = ?");
@@ -70,19 +86,19 @@ switch ($action) {
                 'name'         => $user['name'],
                 'email'        => $user['email'],
                 'avatar'       => $user['avatar'],
-                'api_key'      => $user['api_key'] ? '***' : null, // never send raw key
+                'api_key'      => $user['api_key'] ? '***' : null,
                 'api_provider' => $user['api_provider'],
             ]
         ]);
     }
 
-    // ── LOGOUT ───────────────────────────────────────────────────────────────
+    // ── LOGOUT ────────────────────────────────────────────────────────────────
     case 'logout': {
         destroy_session();
         json_ok();
     }
 
-    // ── ME (check session) ───────────────────────────────────────────────────
+    // ── ME ────────────────────────────────────────────────────────────────────
     case 'me': {
         $user = require_auth();
         json_ok([
