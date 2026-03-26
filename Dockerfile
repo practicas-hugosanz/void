@@ -11,10 +11,12 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean
 
 RUN a2enmod php8.2 rewrite && \
-    sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
+    sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf && \
+    echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 COPY . /var/www/html/
-RUN mkdir -p /var/www/html/data && chmod 777 /var/www/html/data
+RUN rm -f /var/www/html/index.html && \
+    mkdir -p /var/www/html/data && chmod 777 /var/www/html/data
 
 EXPOSE 80
 
