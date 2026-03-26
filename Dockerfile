@@ -14,16 +14,17 @@ COPY . /var/www/html/
 RUN mkdir -p /var/www/html/data && chmod 777 /var/www/html/data && \
     echo '<?php echo "PHP OK"; ?>' > /var/www/html/test.php
 
-RUN echo '<VirtualHost *:80>\n\
+RUN echo '<VirtualHost *:8080>\n\
     DocumentRoot /var/www/html\n\
     <Directory /var/www/html>\n\
         AllowOverride All\n\
         Require all granted\n\
     </Directory>\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf && \
+    echo "Listen 8080" > /etc/apache2/ports.conf && \
     a2enmod php8.2 rewrite && \
     echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
-EXPOSE 80
+EXPOSE 8080
 
-CMD bash -c "apache2ctl -D FOREGROUND 2>&1 | tee /proc/1/fd/1"
+CMD ["apache2ctl", "-D", "FOREGROUND"]
