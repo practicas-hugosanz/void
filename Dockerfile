@@ -1,17 +1,21 @@
-FROM php:8.2-apache
+FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y libsqlite3-dev && \
-    docker-php-ext-install pdo pdo_sqlite && \
-    rm -f /etc/apache2/mods-enabled/mpm_event.conf \
-          /etc/apache2/mods-enabled/mpm_event.load \
-          /etc/apache2/mods-enabled/mpm_worker.conf \
-          /etc/apache2/mods-enabled/mpm_worker.load && \
-    ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf && \
-    ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load && \
-    ln -sf /etc/apache2/mods-available/rewrite.load /etc/apache2/mods-enabled/rewrite.load && \
+RUN apt-get update && apt-get install -y \
+    apache2 \
+    php8.2 \
+    libapache2-mod-php8.2 \
+    php8.2-sqlite3 \
+    php8.2-curl \
+    php8.2-pdo \
+    curl \
+    && apt-get clean
+
+RUN a2enmod php8.2 rewrite && \
     sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 
 COPY . /var/www/html/
 RUN mkdir -p /var/www/html/data && chmod 777 /var/www/html/data
 
 EXPOSE 80
+
+CMD ["apache2ctl", "-D", "FOREGROUND"]
