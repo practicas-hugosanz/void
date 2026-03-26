@@ -12,7 +12,9 @@ RUN apt-get update && apt-get install -y \
 
 RUN a2enmod php8.2 rewrite && \
     sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf && \
-    echo "ServerName localhost" >> /etc/apache2/apache2.conf
+    echo "ServerName localhost" >> /etc/apache2/apache2.conf && \
+    echo "display_errors = On" >> /etc/php/8.2/apache2/php.ini && \
+    echo "error_reporting = E_ALL" >> /etc/php/8.2/apache2/php.ini
 
 COPY . /var/www/html/
 RUN rm -f /var/www/html/index.html && \
