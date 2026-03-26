@@ -20,8 +20,8 @@ cors();
 // ─── Configuración ────────────────────────────────────────────────────────────
 // Rellena estos valores con los de tu Google Cloud Console:
 // https://console.cloud.google.com/apis/credentials
-define('GOOGLE_CLIENT_ID',     getenv('GOOGLE_CLIENT_ID')     ?: '591959080920-e9c750rekp3i0v3uibc97nodbe0iefd9.apps.googleusercontent.com');
-define('GOOGLE_CLIENT_SECRET', getenv('GOOGLE_CLIENT_SECRET') ?: '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');
+define('GOOGLE_CLIENT_ID',     getenv('GOOGLE_CLIENT_ID'));
+define('GOOGLE_CLIENT_SECRET', getenv('GOOGLE_CLIENT_SECRET'));
 
 // URL de retorno — debe coincidir EXACTAMENTE con la configurada en Google Cloud Console
 // Ejemplo: https://tudominio.com/api/oauth_google.php?action=callback
