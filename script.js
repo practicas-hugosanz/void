@@ -204,7 +204,7 @@ const app = {
 
   loginWithGoogle() {
     // Redirect to server-side OAuth flow (preserves HttpOnly cookie session)
-    window.location.href = 'void-production-32d7.up.railway.app/api/oauth_google.php?action=redirect';
+    window.location.href = 'https://void-production-32d7.up.railway.app/api/oauth_google.php?action=redirect';
   },
 
   // ==========================================
