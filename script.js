@@ -206,6 +206,10 @@ const app = {
   window.location.href = 'https://void-production-32d7.up.railway.app/api/oauth_google.php?action=redirect';
 },
 
+  loginWithGithub() {
+  window.location.href = 'https://void-production-32d7.up.railway.app/api/oauth_github.php?action=redirect';
+},
+
   // ==========================================
   // SIDEBAR COLLAPSE
   // ==========================================

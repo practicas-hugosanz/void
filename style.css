@@ -742,6 +742,23 @@ body::before {
 .btn-google:hover::before { opacity: 1; }
 .btn-google:active { transform: translateY(0); }
 .btn-google-icon { width: 20px; height: 20px; flex-shrink: 0; }
+.btn-github {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 13px 20px; border-radius: 12px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); font-family: var(--font-body); font-size: 0.9rem; font-weight: 500;
+  cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+  margin-top: 10px;
+}
+.btn-github::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(36,41,47,0.18), rgba(110,118,129,0.10));
+  opacity: 0; transition: opacity 0.2s;
+}
+.btn-github:hover { border-color: rgba(255,255,255,0.22); transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,0,0,0.35); }
+.btn-github:hover::before { opacity: 1; }
+.btn-github:active { transform: translateY(0); }
+.btn-github-icon { width: 20px; height: 20px; flex-shrink: 0; }
 /* == Auth divider ========================================================== */
 .auth-divider {
   display: flex; align-items: center; gap: 12px; margin: 4px 0;

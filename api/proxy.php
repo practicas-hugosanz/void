@@ -98,7 +98,7 @@ function call_gemini(string $key, array $messages): string {
     $body = ['contents' => $contents];
     if ($systemInstruction) $body['systemInstruction'] = $systemInstruction;
 
-    $url     = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . urlencode($key);
+    $url     = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . urlencode($key);
     $payload = json_encode($body);
 
     $ch = curl_init($url);
@@ -110,14 +110,26 @@ function call_gemini(string $key, array $messages): string {
         CURLOPT_TIMEOUT        => 60,
     ]);
 
-    $raw = curl_exec($ch);
-    $err = curl_error($ch);
+    $raw      = curl_exec($ch);
+    $curlErr  = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($err) json_err('Error de red (Gemini): ' . $err, 502);
+    if ($curlErr) json_err('Error de red (Gemini): ' . $curlErr, 502);
 
     $res = json_decode($raw, true);
-    if (!empty($res['error'])) json_err('Gemini: ' . $res['error']['message'], 502);
+
+    if (!empty($res['error'])) {
+        $msg    = $res['error']['message'] ?? 'Error desconocido de Gemini';
+        $status = $res['error']['code']    ?? $httpCode;
+        // Mensajes más claros según el código de error
+        if ($status === 400) json_err('API Key inválida o solicitud incorrecta: ' . $msg, 400);
+        if ($status === 403) json_err('API Key sin permisos para Gemini. Comprueba que esté activada en Google AI Studio.', 403);
+        if ($status === 429) json_err('Has superado el límite de peticiones de tu API Key de Gemini. Espera un momento.', 429);
+        json_err('Gemini (' . $status . '): ' . $msg, 502);
+    }
+
+    if ($httpCode !== 200) json_err('Gemini devolvió HTTP ' . $httpCode . '. Comprueba tu API Key.', 502);
 
     return $res['candidates'][0]['content']['parts'][0]['text'] ?? '';
 }
