@@ -4,7 +4,6 @@
 Options -Indexes
 RewriteEngine On
 
-<FilesMatch "\.(sqlite|db|log)$">
-    Order Allow,Deny
-    Deny from all
-</FilesMatch>
+<Directory /var/www/html>
+    AllowOverride All
+</Directory>
