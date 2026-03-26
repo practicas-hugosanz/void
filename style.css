@@ -645,7 +645,9 @@ body::before {
 }
 .btn-whitelist:hover { transform: scale(1.04); box-shadow: 0 0 50px var(--accent-glow); }
 .btn-whitelist-dot {
-  width: 7px; height: 7px; border-radius: 50%; background: #000;
+  width: 7px; height: 7px; min-width: 7px; min-height: 7px;
+  border-radius: 50%; background: #000;
+  flex-shrink: 0; align-self: center;
   animation: blink 1.6s ease-in-out infinite;
 }
 .l-whitelist-note {
@@ -1275,7 +1277,7 @@ body::before {
   .l-whitelist-inner { padding: 40px 22px; border-radius: 20px; }
   .l-whitelist-title { font-size: clamp(2rem, 9vw, 3rem); }
   .l-whitelist-sub { font-size: 0.9rem; }
-  .btn-whitelist { padding: 16px 24px; font-size: 0.84rem; width: 100%; justify-content: center; }
+  .btn-whitelist { padding: 14px 22px; font-size: 0.84rem; width: 100%; justify-content: center; align-items: center; box-sizing: border-box; }
 
   /* Footer */
   .l-footer { padding: 40px 18px 24px; }
