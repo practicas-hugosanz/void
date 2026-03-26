@@ -26,4 +26,4 @@ RUN echo '<VirtualHost *:80>\n\
 
 EXPOSE 80
 
-CMD bash -c "apache2ctl configtest && apache2ctl -D FOREGROUND"
+CMD bash -c "apache2ctl -D FOREGROUND 2>&1 | tee /proc/1/fd/1"
