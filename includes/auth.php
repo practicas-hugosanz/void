@@ -78,7 +78,7 @@ function resolve_session(): ?array {
 
     $db = get_db();
     $stmt = $db->prepare("
-        SELECT u.id, u.name, u.email, u.avatar, u.api_key, u.api_provider
+        SELECT u.id, u.name, u.email, u.avatar, u.api_key, u.api_provider, u.api_model
         FROM sessions s JOIN users u ON u.id = s.user_id
         WHERE s.token = ? AND datetime(s.last_seen, '+30 days') > datetime('now')
     ");

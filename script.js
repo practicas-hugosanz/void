@@ -19,6 +19,27 @@ const API = {
 // IMPORTANT: Change this to a strong secret and never commit it to a public repo
 const ADMIN_SECRET = 'void-admin-2025-secret';
 
+// ─── Available models per provider ───────────────────────────────────────────
+const MODELS = {
+  gemini: [
+    { id: 'gemini-2.0-flash',         label: 'Gemini 2.0 Flash',       tag: 'rápido' },
+    { id: 'gemini-2.0-flash-lite',    label: 'Gemini 2.0 Flash Lite',  tag: 'ligero' },
+    { id: 'gemini-1.5-pro',           label: 'Gemini 1.5 Pro',         tag: 'potente' },
+    { id: 'gemini-1.5-flash',         label: 'Gemini 1.5 Flash',       tag: 'equilibrado' },
+  ],
+  openai: [
+    { id: 'gpt-4o',                   label: 'GPT-4o',                 tag: 'flagship' },
+    { id: 'gpt-4o-mini',              label: 'GPT-4o Mini',            tag: 'rápido' },
+    { id: 'gpt-4-turbo',              label: 'GPT-4 Turbo',            tag: 'potente' },
+    { id: 'gpt-3.5-turbo',           label: 'GPT-3.5 Turbo',          tag: 'económico' },
+    { id: 'o1-mini',                  label: 'o1 Mini',                tag: 'razonamiento' },
+  ],
+};
+
+function defaultModel(provider) {
+  return MODELS[provider]?.[0]?.id ?? '';
+}
+
 async function apiFetch(url, options = {}) {
   const res = await fetch(url, {
     credentials: 'include',
@@ -36,6 +57,7 @@ const app = {
   activeConvId: null,    // ID of the currently loaded conversation
   apiKey: '',            // Only used client-side for direct-mode (proxy mode stores on server)
   apiProvider: 'gemini', // 'gemini' | 'openai'
+  apiModel: '',          // specific model, e.g. 'gpt-4o', 'gemini-2.0-flash'
   useProxy: true,        // true = API key stored server-side; false = direct from browser
   isTyping: false,
   sidebarCollapsed: false,
@@ -67,6 +89,7 @@ const app = {
 
     this.currentUser = res.data;
     this.apiProvider = res.data.api_provider || 'gemini';
+    this.apiModel = res.data.api_model || defaultModel(this.apiProvider);
     // has_key: server has an API key stored for this user
     this.useProxy = !!res.data.api_key; // api_key comes back as '***' if set
 
@@ -196,6 +219,7 @@ const app = {
   async _afterLogin(data) {
     this.currentUser = data.user;
     this.apiProvider = data.user.api_provider || 'gemini';
+    this.apiModel = data.user.api_model || defaultModel(this.apiProvider);
     this.useProxy = !!data.user.api_key; // '***' means key is set server-side
     await this.loadState();
     this.showPage('chat');
@@ -833,7 +857,7 @@ const app = {
     try {
       const res = await apiFetch(API.proxy, {
         method: 'POST',
-        body: JSON.stringify({ messages, provider: this.apiProvider }),
+        body: JSON.stringify({ messages, provider: this.apiProvider, model: this.apiModel || defaultModel(this.apiProvider) }),
       });
       if (!res.ok) return '⚠️ ' + (res.error || 'Error del servidor') + ' ✦';
       return res.data.text || 'Sin respuesta del núcleo. ✦';
@@ -959,6 +983,28 @@ const app = {
   // ==========================================
   // SETTINGS MODAL
   // ==========================================
+  renderModelSelector(provider, selectedModel) {
+    const container = document.getElementById('model-selector');
+    if (!container) return;
+    const models = MODELS[provider] || [];
+    const active = selectedModel || defaultModel(provider);
+    container.innerHTML = models.map(m => `
+      <button class="model-btn${m.id === active ? ' active' : ''}"
+        data-model="${m.id}"
+        onclick="app.selectModel('${m.id}')">
+        ${m.label}
+        <span class="model-tag">${m.tag}</span>
+      </button>
+    `).join('');
+  },
+
+  selectModel(modelId) {
+    this._tempModel = modelId;
+    document.querySelectorAll('.model-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.model === modelId);
+    });
+  },
+
   selectProvider(provider) {
     // Only updates the UI + temp state, never commits to this.apiProvider
     this._tempProvider = provider;
@@ -979,6 +1025,9 @@ const app = {
     }
     // Clear input when switching so each provider feels independent
     input.value = '';
+    // Reset temp model and re-render model selector for new provider
+    this._tempModel = defaultModel(provider);
+    this.renderModelSelector(provider, this._tempModel);
   },
 
   openSettings() {
@@ -1001,6 +1050,9 @@ const app = {
     // Don't pre-fill the key field (server stores it, never expose raw to client)
     input.value = '';
     input.placeholder = this.useProxy ? 'Clave guardada en servidor — introduce una nueva para cambiarla' : (this.apiProvider === 'gemini' ? 'AIza...' : 'sk-...');
+    // Render model selector
+    this._tempModel = this.apiModel || defaultModel(this.apiProvider);
+    this.renderModelSelector(this.apiProvider, this._tempModel);
     document.getElementById('modal-settings').classList.add('active');
     this.updateModelStatus();
   },
@@ -1014,13 +1066,16 @@ const app = {
   async saveSettings() {
     const key = document.getElementById('settings-apikey').value.trim();
     const provider = this._tempProvider || this.apiProvider;
+    const model = this._tempModel || this.apiModel || defaultModel(provider);
     this._tempProvider = null;
+    this._tempModel = null;
     const res = await apiFetch(API.user + '?action=settings', {
       method: 'PUT',
-      body: JSON.stringify({ api_key: key, api_provider: provider }),
+      body: JSON.stringify({ api_key: key, api_provider: provider, api_model: model }),
     });
     if (!res.ok) { this.showToast('\u26a0\ufe0f ' + res.error); return; }
     this.apiProvider = provider;
+    this.apiModel = model;
     this.useProxy = !!key; // if key saved, use server proxy
     this.apiKey = key;     // also keep locally for direct mode fallback
     this.updateModelStatus();
@@ -1034,10 +1089,12 @@ const app = {
     const badge = document.querySelector('.status-badge');
     const isConnected = this.useProxy || this.apiKey;
     if (isConnected) {
-      const label = this.apiProvider === 'gemini' ? 'Gemini' : 'OpenAI';
+      const modelList = MODELS[this.apiProvider] || [];
+      const modelInfo = modelList.find(m => m.id === this.apiModel);
+      const modelLabel = modelInfo ? modelInfo.label : (this.apiProvider === 'gemini' ? 'Gemini' : 'OpenAI');
       if (dot) dot.classList.add('active');
-      if (text) text.textContent = 'VOID Singularidad (' + label + ')';
-      if (badge) { badge.className = 'status-badge real'; badge.textContent = 'Conectado (' + label + ')'; }
+      if (text) text.textContent = 'VOID Singularidad (' + modelLabel + ')';
+      if (badge) { badge.className = 'status-badge real'; badge.textContent = 'Conectado · ' + modelLabel; }
     } else {
       if (dot) dot.classList.remove('active');
       if (text) text.textContent = 'VOID Base (Mock)';

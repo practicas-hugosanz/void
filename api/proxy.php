@@ -26,6 +26,7 @@ $settings = $row->fetch();
 
 $apiKey   = $settings['api_key']      ?? '';
 $provider = body()['provider']        ?? ($settings['api_provider'] ?? 'gemini');
+$model    = body()['model']           ?? ($settings['api_model']    ?? '');
 $messages = body()['messages']        ?? [];
 
 if (!$apiKey) json_err('No tienes una API Key configurada. Añádela en Ajustes.', 402);
@@ -33,19 +34,23 @@ if (empty($messages)) json_err('Sin mensajes');
 
 // ─── Route to provider ────────────────────────────────────────────────────────
 
+// Fallback to default model if not specified
+$defaultModels = ['gemini' => 'gemini-2.0-flash', 'openai' => 'gpt-4o'];
+if (!$model) $model = $defaultModels[$provider] ?? 'gpt-4o';
+
 if ($provider === 'openai') {
-    $responseText = call_openai($apiKey, $messages);
+    $responseText = call_openai($apiKey, $messages, $model);
 } else {
-    $responseText = call_gemini($apiKey, $messages);
+    $responseText = call_gemini($apiKey, $messages, $model);
 }
 
 json_ok(['text' => $responseText]);
 
 // ─── OpenAI ──────────────────────────────────────────────────────────────────
 
-function call_openai(string $key, array $messages): string {
+function call_openai(string $key, array $messages, string $model = 'gpt-4o'): string {
     $payload = json_encode([
-        'model'    => 'gpt-4o',
+        'model'    => $model,
         'messages' => $messages,
     ]);
 
@@ -92,7 +97,7 @@ function call_openai(string $key, array $messages): string {
 
 // ─── Google Gemini ────────────────────────────────────────────────────────────
 
-function call_gemini(string $key, array $messages): string {
+function call_gemini(string $key, array $messages, string $model = 'gemini-2.0-flash'): string {
     // Convert OpenAI-style messages to Gemini contents
     $contents = [];
     $systemInstruction = null;
@@ -115,7 +120,7 @@ function call_gemini(string $key, array $messages): string {
     $body = ['contents' => $contents];
     if ($systemInstruction) $body['systemInstruction'] = $systemInstruction;
 
-    $url     = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . urlencode($key);
+    $url     = 'https://generativelanguage.googleapis.com/v1beta/models/' . urlencode($model) . ':generateContent?key=' . urlencode($key);
     $payload = json_encode($body);
 
     $ch = curl_init($url);

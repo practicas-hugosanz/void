@@ -69,5 +69,6 @@ function migrate(PDO $pdo): void {
     // Migración segura para BBDDs existentes: añadir columnas si aún no existen
     // SQLite no soporta IF NOT EXISTS en ALTER TABLE, así que capturamos la excepción
     try { $pdo->exec("ALTER TABLE whitelist ADD COLUMN name TEXT DEFAULT NULL"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE users ADD COLUMN api_model TEXT DEFAULT NULL"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE whitelist ADD COLUMN password_hash TEXT DEFAULT NULL"); } catch (Exception $e) {}
 }

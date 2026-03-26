@@ -90,20 +90,30 @@ switch ($action) {
             json_ok([
                 'api_key'      => $s['api_key'] ? '***' : null,
                 'api_provider' => $s['api_provider'] ?? 'gemini',
+                'api_model'    => $s['api_model'] ?? null,
             ]);
         }
 
         // PUT / POST — save
         $key      = trim(body()['api_key']      ?? '');
         $provider = trim(body()['api_provider'] ?? 'gemini');
+        $model    = trim(body()['api_model']    ?? '');
 
         if (!in_array($provider, ['gemini', 'openai'], true))
             json_err('Proveedor inválido');
 
-        $db->prepare("UPDATE users SET api_key = ?, api_provider = ? WHERE id = ?")
-           ->execute([$key ?: null, $provider, $user['id']]);
+        // Allowed models whitelist
+        $allowedModels = [
+            'gemini' => ['gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-pro','gemini-1.5-flash'],
+            'openai' => ['gpt-4o','gpt-4o-mini','gpt-4-turbo','gpt-3.5-turbo','o1-mini'],
+        ];
+        if ($model && !in_array($model, $allowedModels[$provider] ?? [], true))
+            json_err('Modelo no permitido para este proveedor');
 
-        json_ok(['api_provider' => $provider, 'has_key' => (bool) $key]);
+        $db->prepare("UPDATE users SET api_key = ?, api_provider = ?, api_model = ? WHERE id = ?")
+           ->execute([$key ?: null, $provider, $model ?: null, $user['id']]);
+
+        json_ok(['api_provider' => $provider, 'api_model' => $model, 'has_key' => (bool) $key]);
     }
 
     // ── GET REAL API KEY (used server-side only, never exposed raw to client) ─
