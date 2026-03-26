@@ -31,7 +31,7 @@ $messages = body()['messages']        ?? [];
 if (!$apiKey) json_err('No tienes una API Key configurada. Añádela en Ajustes.', 402);
 if (empty($messages)) json_err('Sin mensajes');
 
-// ─── Route to provider ────────────────────────────────────────────────────────
+// ─── Route to provider ───────────────────────────────────────────────────────
 
 if ($provider === 'openai') {
     $responseText = call_openai($apiKey, $messages);
@@ -61,36 +61,19 @@ function call_openai(string $key, array $messages): string {
         CURLOPT_TIMEOUT        => 60,
     ]);
 
-    $raw      = curl_exec($ch);
-    $curlErr  = curl_error($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $raw  = curl_exec($ch);
+    $err  = curl_error($ch);
     curl_close($ch);
 
-    if ($curlErr || $raw === false) {
-        json_err('Error de red al conectar con OpenAI: ' . ($curlErr ?: 'sin respuesta'), 502);
-    }
+    if ($err) json_err('Error de red (OpenAI): ' . $err, 502);
 
     $res = json_decode($raw, true);
-
-    // API-level errors (invalid key, quota, etc.)
-    if (!empty($res['error'])) {
-        $msg  = $res['error']['message'] ?? 'Error desconocido de OpenAI';
-        $code = $res['error']['code']    ?? '';
-        if ($httpCode === 401 || $code === 'invalid_api_key')
-            json_err('API Key de OpenAI inválida. Compruébala en Ajustes.', 401);
-        if ($httpCode === 429 || $code === 'rate_limit_exceeded' || $code === 'insufficient_quota')
-            json_err('Has superado el límite o no tienes créditos en tu cuenta de OpenAI.', 429);
-        json_err('OpenAI (' . $httpCode . '): ' . $msg, 502);
-    }
-
-    if (!is_array($res) || $httpCode !== 200) {
-        json_err('Respuesta inesperada de OpenAI (HTTP ' . $httpCode . '). Inténtalo de nuevo.', 502);
-    }
+    if (!empty($res['error'])) json_err('OpenAI: ' . $res['error']['message'], 502);
 
     return $res['choices'][0]['message']['content'] ?? '';
 }
 
-// ─── Google Gemini ────────────────────────────────────────────────────────────
+// ─── Google Gemini ───────────────────────────────────────────────────────────
 
 function call_gemini(string $key, array $messages): string {
     // Convert OpenAI-style messages to Gemini contents
@@ -132,24 +115,21 @@ function call_gemini(string $key, array $messages): string {
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($curlErr || $raw === false) {
-        json_err('Error de red al conectar con Gemini: ' . ($curlErr ?: 'sin respuesta'), 502);
-    }
+    if ($curlErr) json_err('Error de red (Gemini): ' . $curlErr, 502);
 
     $res = json_decode($raw, true);
 
     if (!empty($res['error'])) {
         $msg    = $res['error']['message'] ?? 'Error desconocido de Gemini';
         $status = $res['error']['code']    ?? $httpCode;
+        // Mensajes más claros según el código de error
         if ($status === 400) json_err('API Key inválida o solicitud incorrecta: ' . $msg, 400);
         if ($status === 403) json_err('API Key sin permisos para Gemini. Comprueba que esté activada en Google AI Studio.', 403);
         if ($status === 429) json_err('Has superado el límite de peticiones de tu API Key de Gemini. Espera un momento.', 429);
         json_err('Gemini (' . $status . '): ' . $msg, 502);
     }
 
-    if (!is_array($res) || $httpCode !== 200) {
-        json_err('Respuesta inesperada de Gemini (HTTP ' . $httpCode . '). Inténtalo de nuevo.', 502);
-    }
+    if ($httpCode !== 200) json_err('Gemini devolvió HTTP ' . $httpCode . '. Comprueba tu API Key.', 502);
 
     return $res['candidates'][0]['content']['parts'][0]['text'] ?? '';
 }
