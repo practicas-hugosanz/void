@@ -1107,13 +1107,45 @@ const app = {
   // ==========================================
   initCursor() {
     const cursor = document.getElementById('cursor');
-    const ring = document.getElementById('cursor-ring');
+    const ring   = document.getElementById('cursor-ring');
+    if (!cursor || !ring) return;
+
+    let mx = -100, my = -100; // raw mouse position
+    let rx = -100, ry = -100; // ring interpolated position
+    let rafId = null;
+
+    // Update dot instantly on mousemove — zero lag
     document.addEventListener('mousemove', e => {
-      cursor.style.left = e.clientX + 'px'; cursor.style.top = e.clientY + 'px';
-      ring.style.left = e.clientX + 'px'; ring.style.top = e.clientY + 'px';
+      mx = e.clientX; my = e.clientY;
+      cursor.style.transform = `translate(calc(-50% + ${mx}px), calc(-50% + ${my}px))`;
+    }, { passive: true });
+
+    // Ring follows with smooth lerp via rAF — no CSS transition on position
+    const LERP = 0.18; // 0 = instant, 1 = never moves; 0.18 = snappy trail
+    function animateRing() {
+      rx += (mx - rx) * LERP;
+      ry += (my - ry) * LERP;
+      ring.style.transform = `translate(calc(-50% + ${rx}px), calc(-50% + ${ry}px))`;
+      rafId = requestAnimationFrame(animateRing);
+    }
+    animateRing();
+
+    document.addEventListener('mousedown', () => {
+      cursor.style.width = '6px'; cursor.style.height = '6px';
+      ring.style.width = '44px'; ring.style.height = '44px';
     });
-    document.addEventListener('mousedown', () => { cursor.style.width = '6px'; cursor.style.height = '6px'; ring.style.width = '44px'; ring.style.height = '44px'; });
-    document.addEventListener('mouseup', () => { cursor.style.width = '10px'; cursor.style.height = '10px'; ring.style.width = '32px'; ring.style.height = '32px'; });
+    document.addEventListener('mouseup', () => {
+      cursor.style.width = '10px'; cursor.style.height = '10px';
+      ring.style.width = '32px'; ring.style.height = '32px';
+    });
+
+    // Hide when leaving window
+    document.addEventListener('mouseleave', () => {
+      cursor.style.opacity = '0'; ring.style.opacity = '0';
+    });
+    document.addEventListener('mouseenter', () => {
+      cursor.style.opacity = '1'; ring.style.opacity = '1';
+    });
   },
 
   initCanvas() {
