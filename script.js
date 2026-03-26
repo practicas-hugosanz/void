@@ -1295,12 +1295,14 @@ const app = {
 
     if (bar) {
       // Obtener conteo real de aprobados
-      fetch('/api/whitelist.php?action=count')
+      fetch(API.whitelist + '?action=count')
         .then(r => r.json())
         .then(data => {
           const count = data.data?.count ?? 0;
           const pct   = Math.min(Math.round((count / LIMIT) * 100), 100);
 
+          // Observe the bar-wrap (visible container) instead of bar-fill (starts at width:0)
+          const barWrap = bar.closest('.l-whitelist-bar-wrap') || bar.parentElement;
           const obs = new IntersectionObserver(entries => {
             if (!entries[0].isIntersecting) return;
             obs.disconnect();
@@ -1316,15 +1318,16 @@ const app = {
             }
             // Animar barra
             bar.style.width = (pct || 1) + '%';
-          }, { threshold: 0.5 });
-          obs.observe(bar);
+          }, { threshold: 0.3 });
+          obs.observe(barWrap);
         })
         .catch(() => {
           // Fallback silencioso — dejar en 0
+          const barWrap = bar.closest('.l-whitelist-bar-wrap') || bar.parentElement;
           const obs = new IntersectionObserver(entries => {
             if (entries[0].isIntersecting) { bar.style.width = '1%'; obs.disconnect(); }
-          }, { threshold: 0.5 });
-          obs.observe(bar);
+          }, { threshold: 0.3 });
+          obs.observe(barWrap);
         });
     }
     if (!cells.length) return;
