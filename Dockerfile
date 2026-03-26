@@ -23,8 +23,10 @@ RUN echo '<VirtualHost *:8080>\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf && \
     echo "Listen 8080" > /etc/apache2/ports.conf && \
     a2enmod php8.2 rewrite && \
-    echo "ServerName localhost" >> /etc/apache2/apache2.conf
+    echo "ServerName localhost" >> /etc/apache2/apache2.conf && \
+    echo "ErrorLog /dev/stderr" >> /etc/apache2/apache2.conf && \
+    echo "TransferLog /dev/stdout" >> /etc/apache2/apache2.conf
 
 EXPOSE 8080
 
-CMD ["apache2ctl", "-D", "FOREGROUND"]
+CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
