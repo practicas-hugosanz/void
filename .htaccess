@@ -2,8 +2,8 @@
 # Allow PHP files, block direct access to /includes and /data
 
 Options -Indexes
+RewriteEngine On
 
-# Block access to sensitive dirs
 <FilesMatch "\.(sqlite|db|log)$">
     Order Allow,Deny
     Deny from all
