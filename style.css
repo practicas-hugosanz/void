@@ -713,7 +713,7 @@ body::before {
 .form-label { font-size: 0.75rem; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; }
 .form-input {
   background: var(--bg3); border: 1px solid var(--border2);
-  color: var(--text); padding: 10px 14px; border-radius: 10px;
+  color: var(--text); padding: 11px 14px; border-radius: 10px;
   font-family: var(--font-body); font-size: 0.88rem; outline: none;
   transition: border-color 0.2s, background 0.2s;
 }
@@ -1071,9 +1071,9 @@ body::before {
 }
 .modal-back:hover { color: var(--accent); }
 .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
-.modal-desc { color: var(--text2); font-size: 0.85rem; line-height: 1.5; margin-bottom: 14px; }
+.modal-desc { color: var(--text2); font-size: 0.85rem; line-height: 1.6; margin-bottom: 20px; }
 .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; background: var(--bg3); border-radius: 0 0 24px 24px; flex-shrink: 0; }
-.settings-status { margin-top: 12px; font-size: 0.82rem; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+.settings-status { margin-top: 20px; font-size: 0.82rem; color: var(--text2); display: flex; align-items: center; gap: 8px; }
 .status-badge { padding: 4px 10px; border-radius: 100px; font-size: 0.75rem; font-weight: 600; }
 .status-badge.mock { background: rgba(255,255,255,0.1); color: var(--text); }
 .status-badge.real { background: rgba(40,200,64,0.15); color: #28c840; border: 1px solid rgba(40,200,64,0.3); }
@@ -1378,7 +1378,7 @@ body::before {
   display: flex; gap: 8px; margin-top: 6px;
 }
 .provider-btn {
-  flex: 1; padding: 8px 12px; border-radius: 8px;
+  flex: 1; padding: 10px 14px; border-radius: 8px;
   border: 1px solid var(--border2);
   background: var(--bg); color: var(--muted);
   cursor: pointer; font-size: 0.83rem; font-family: inherit;
@@ -1415,7 +1415,7 @@ body::before {
 }
 
 /* ===== FORM HINT ===== */
-.modal-body .form-field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+.modal-body .form-field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
 .modal-body .form-field:last-child { margin-bottom: 0; }
 .form-hint {
   margin-top: 6px; font-size: 0.78rem; color: var(--muted);
