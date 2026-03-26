@@ -1543,12 +1543,12 @@ body::before {
   width: 100%; border-collapse: collapse; font-size: 0.875rem;
 }
 .admin-table th {
-  text-align: left; padding: 10px 14px; color: var(--muted);
-  font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
+  text-align: left; padding: 10px 18px; color: var(--muted);
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.09em;
   border-bottom: 1px solid var(--border); white-space: nowrap;
 }
 .admin-table td {
-  padding: 12px 14px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  padding: 14px 18px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
   color: var(--text); vertical-align: middle;
 }
 .admin-table tr:last-child td { border-bottom: none; }
@@ -1556,8 +1556,9 @@ body::before {
 .admin-date { color: var(--muted); font-size: 0.8rem; white-space: nowrap; }
 
 .admin-status {
-  display: inline-block; font-size: 0.75rem; font-weight: 600;
-  padding: 3px 10px; border-radius: 100px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.76rem; font-weight: 600;
+  padding: 5px 11px; border-radius: 100px; white-space: nowrap;
 }
 .status-approved { background: color-mix(in srgb, #4ade80 15%, transparent); color: #4ade80; }
 .status-pending  { background: color-mix(in srgb, #facc15 15%, transparent); color: #facc15; }
@@ -1565,8 +1566,9 @@ body::before {
 
 .admin-actions { display: flex; gap: 8px; white-space: nowrap; }
 .btn-admin-approve, .btn-admin-reject {
-  border: none; cursor: pointer; border-radius: 6px;
-  font-size: 0.78rem; font-weight: 600; padding: 5px 12px;
+  border: none; cursor: pointer; border-radius: 8px;
+  font-size: 0.78rem; font-weight: 600; padding: 6px 14px;
+  font-family: var(--font-body);
   transition: opacity 0.2s;
 }
 .btn-admin-approve:hover, .btn-admin-reject:hover { opacity: 0.75; }

@@ -1448,7 +1448,11 @@ const app = {
       return;
     }
 
-    const statusLabel = { approved: '✅ Aprobado', pending: '⏳ Pendiente', rejected: '❌ Rechazado' };
+    const statusLabel = {
+      approved: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg> Aprobado`,
+      pending:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Pendiente`,
+      rejected: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Rechazado`,
+    };
     const statusClass = { approved: 'status-approved', pending: 'status-pending', rejected: 'status-rejected' };
 
     listEl.innerHTML = `
