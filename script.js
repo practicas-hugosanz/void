@@ -5,7 +5,7 @@
  */
 
 // ── API base path — adjust if your PHP files live in a subdirectory ──────────
-const API_BASE = 'void-production-32d7.up.railway.app';
+const API_BASE = 'https://void-production-32d7.up.railway.app';
 
 const API = {
   auth:  API_BASE + '/api/auth.php',
@@ -203,9 +203,8 @@ const app = {
   },
 
   loginWithGoogle() {
-    // Redirect to server-side OAuth flow (preserves HttpOnly cookie session)
-    window.location.href = 'https://void-production-32d7.up.railway.app/api/oauth_google.php?action=redirect';
-  },
+  window.location.href = 'https://void-production-32d7.up.railway.app/api/oauth_google.php?action=redirect';
+},
 
   // ==========================================
   // SIDEBAR COLLAPSE
