@@ -5,11 +5,13 @@
  */
 
 // ── API base path — adjust if your PHP files live in a subdirectory ──────────
+const API_BASE = 'void-production-32d7.up.railway.app';
+
 const API = {
-  auth:  'api/auth.php',
-  user:  'api/user.php',
-  convs: 'api/conversations.php',
-  proxy: 'api/proxy.php',
+  auth:  API_BASE + '/api/auth.php',
+  user:  API_BASE + '/api/user.php',
+  convs: API_BASE + '/api/conversations.php',
+  proxy: API_BASE + '/api/proxy.php',
 };
 
 async function apiFetch(url, options = {}) {
@@ -202,7 +204,7 @@ const app = {
 
   loginWithGoogle() {
     // Redirect to server-side OAuth flow (preserves HttpOnly cookie session)
-    window.location.href = 'api/oauth_google.php?action=redirect';
+    window.location.href = 'void-production-32d7.up.railway.app/api/oauth_google.php?action=redirect';
   },
 
   // ==========================================
