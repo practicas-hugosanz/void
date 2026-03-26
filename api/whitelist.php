@@ -102,11 +102,25 @@ switch ($action) {
         $email = strtolower(trim($body['email'] ?? ''));
         if (!$email) json_err('Email requerido');
 
-        $db   = get_db();
+        $db = get_db();
+
+        // Aprobar en whitelist
         $stmt = $db->prepare("UPDATE whitelist SET status = 'approved', reviewed_at = datetime('now') WHERE email = ?");
         $stmt->execute([$email]);
-
         if ($stmt->rowCount() === 0) json_err('Email no encontrado en la whitelist');
+
+        // Crear usuario en tabla users si no existe todavía
+        $wl = $db->prepare("SELECT name, password_hash FROM whitelist WHERE email = ?");
+        $wl->execute([$email]);
+        $wlRow = $wl->fetch();
+
+        $exists = $db->prepare("SELECT id FROM users WHERE email = ?");
+        $exists->execute([$email]);
+        if (!$exists->fetch() && $wlRow) {
+            $db->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)")
+               ->execute([$wlRow['name'], $email, $wlRow['password_hash']]);
+        }
+
         json_ok(['message' => "Email $email aprobado"]);
     }
 
