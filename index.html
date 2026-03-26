@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOID</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- SVG ICON SYSTEM -->
+  <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="ico-void" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <circle cx="12" cy="12" r="3" />
+      <circle cx="12" cy="12" r="6.5" stroke-width="0.8" stroke-dasharray="2 1.5" />
+      <circle cx="12" cy="12" r="10" stroke-width="0.5" opacity="0.5" />
+    </symbol>
+    <symbol id="ico-orbit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <ellipse cx="12" cy="12" rx="10" ry="4" stroke-width="1" />
+      <ellipse cx="12" cy="12" rx="4" ry="10" stroke-width="1" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+    </symbol>
+    <symbol id="ico-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+      stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="13 2 4.5 13.5 11 13.5 11 22 19.5 10.5 13 10.5 13 2" />
+    </symbol>
+    <symbol id="ico-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+      stroke-linecap="round">
+      <path d="M3 7V5a2 2 0 012-2h2" />
+      <path d="M17 3h2a2 2 0 012 2v2" />
+      <path d="M21 17v2a2 2 0 01-2 2h-2" />
+      <path d="M7 21H5a2 2 0 01-2-2v-2" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 5v2M12 17v2M5 12h2M17 12h2" />
+    </symbol>
+    <symbol id="ico-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+      stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 018 0v4" />
+      <circle cx="12" cy="16" r="1.2" fill="currentColor" stroke="none" />
+    </symbol>
+    <symbol id="ico-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+      stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+    </symbol>
+    <symbol id="ico-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+      stroke-linecap="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </symbol>
+    <symbol id="ico-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+      stroke-linecap="round">
+      <line x1="4" y1="7" x2="20" y2="7" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="17" x2="20" y2="17" />
+    </symbol>
+    <symbol id="ico-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+      stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </symbol>
+    <symbol id="ico-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+      stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path
+        d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+    </symbol>
+    <symbol id="ico-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+      stroke-linejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </symbol>
+    <symbol id="ico-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </symbol>
+    <symbol id="ico-spark" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2l1.8 7.2L21 12l-7.2 1.8L12 22l-1.8-7.2L3 12l7.2-1.8L12 2z" />
+    </symbol>
+    <symbol id="ico-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+      stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </symbol>
+    <symbol id="ico-attach" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+      stroke-linecap="round" stroke-linejoin="round">
+      <path
+        d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+    </symbol>
+    <symbol id="ico-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+      stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </symbol>
+    <symbol id="ico-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+      stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </symbol>
+    <symbol id="ico-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </symbol>
+    <symbol id="ico-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+      <circle cx="12" cy="13" r="4"/>
+    </symbol>
+    <symbol id="ico-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </symbol>
+    <symbol id="ico-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </symbol>
+    <symbol id="ico-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+      stroke-linejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+      <line x1="12" y1="9" x2="12" y2="13"></line>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </symbol>
+    <symbol id="ico-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+      stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </symbol>
+  </svg>
+
+  <!-- CURSOR -->
+  <div id="cursor"></div>
+  <div id="cursor-ring"></div>
+
+  <!-- TOAST -->
+  <div id="toast"></div>
+
+  <!-- BLACK HOLE CANVAS -->
+  <canvas id="bh-canvas"></canvas>
+
+  <!-- ==================== LANDING PAGE ==================== -->
+  <!-- CURSOR GLOW -->
+  <div class="hero-cursor-glow" id="hero-glow"></div>
+
+  <div id="page-landing" class="page active">
+
+    <!-- FLOATING PROMPT CHIPS -->
+    <div class="hero-prompts" id="hero-prompts"></div>
+
+    <nav class="l-nav">
+      <a href="#" class="l-nav-logo">VOID</a>
+      <ul class="l-nav-links">
+        <li><a href="#features">Capacidades</a></li>
+        <li><a href="#demo">Demo</a></li>
+        <li><a href="#about">Nosotros</a></li>
+        <li><a href="#whitelist">Whitelist</a></li>
+      </ul>
+      <div class="l-nav-actions">
+        <button class="btn-ghost" onclick="app.showAuth('login')">Iniciar sesión</button>
+        <button class="btn-accent" onclick="app.showAuth('register')">
+          Acceder a la Whitelist <svg class="icon icon-sm">
+            <use href="#ico-arrow" />
+          </svg>
+        </button>
+      </div>
+      <!-- Mobile hamburger -->
+      <button class="l-nav-hamburger" id="nav-hamburger" onclick="app.toggleMobileNav()" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </nav>
+    <!-- Mobile nav drawer -->
+    <div class="l-nav-mobile" id="nav-mobile">
+      <ul class="l-nav-mobile-links">
+        <li><a href="#features" onclick="app.closeMobileNav()">Capacidades</a></li>
+        <li><a href="#demo" onclick="app.closeMobileNav()">Demo</a></li>
+        <li><a href="#about" onclick="app.closeMobileNav()">Nosotros</a></li>
+        <li><a href="#whitelist" onclick="app.closeMobileNav()">Whitelist</a></li>
+      </ul>
+      <div class="l-nav-mobile-actions">
+        <button class="btn-ghost" style="width:100%;justify-content:center;"
+          onclick="app.showAuth('login');app.closeMobileNav()">Iniciar sesión</button>
+        <button class="btn-accent" style="width:100%;justify-content:center;"
+          onclick="app.showAuth('register');app.closeMobileNav()">Acceder a la Whitelist</button>
+      </div>
+    </div>
+
+    <section class="l-hero">
+
+      <h1 class="l-hero-title">
+        <span>Pregunta en</span>
+        <span class="accent-line">el vacío.</span>
+        <span style="color:#fff;">Recibe lo</span>
+        <span class="hero-singularity"><span class="hero-singularity-word">inimaginable.</span></span>
+      </h1>
+      <p class="l-hero-sub">
+        IA de alto rendimiento. Respuestas precisas, contexto sostenido, cero distracciones.
+      </p>
+      <div class="l-hero-cta">
+        <button class="btn-hero-primary" onclick="app.showAuth('register')">
+          Solicitar Acceso
+          <svg class="icon">
+            <use href="#ico-arrow" />
+          </svg>
+        </button>
+        <button class="btn-hero-outline" onclick="app.showAuth('login')">Ya tengo cuenta</button>
+      </div>
+      <div class="scroll-hint">
+        <div class="scroll-line"></div>
+        <span>Scroll</span>
+      </div>
+    </section>
+
+    <div class="l-marquee">
+      <div class="l-marquee-track" id="marquee-track">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <section id="features" class="l-features">
+
+      <!-- STATS ROW -->
+      <div class="l-stats-row reveal">
+        <div class="l-stat-cell">
+          <div class="l-stat-num" data-count="0" data-target="128">0K</div>
+          <div class="l-stat-label">Conversaciones activas</div>
+        </div>
+        <div class="l-stat-cell">
+          <div class="l-stat-num">&lt;0.8s</div>
+          <div class="l-stat-label">Latencia media de respuesta</div>
+        </div>
+        <div class="l-stat-cell">
+          <div class="l-stat-num" data-count="0" data-target="99">0%</div>
+          <div class="l-stat-label">Uptime garantizado</div>
+        </div>
+      </div>
+
+      <!-- LIVE DEMO -->
+      <div class="l-demo-section reveal" id="demo">
+        <div class="l-demo-label">
+          <div class="section-tag">Demo en vivo</div>
+          <h2 class="section-title">Míralo en acción</h2>
+          <p class="section-sub" style="margin-top:12px;">Una conversación real con VOID, reproduciéndose ahora mismo.
+          </p>
+        </div>
+        <div class="l-demo-window">
+          <div class="l-demo-titlebar">
+            <div class="l-demo-dots">
+              <span class="d1"></span><span class="d2"></span><span class="d3"></span>
+            </div>
+            <div class="l-demo-title">VOID — Nueva conversación</div>
+            <div class="l-demo-status"><span class="l-demo-status-dot"></span>En línea</div>
+          </div>
+          <div class="l-demo-messages" id="demo-messages"></div>
+          <div class="l-demo-inputbar">
+            <div class="l-demo-input-fake">
+              <span class="l-demo-input-text" id="demo-input-text">Escribe tu mensaje...</span>
+            </div>
+            <div class="l-demo-send">
+              <svg style="width:14px;height:14px">
+                <use href="#ico-arrow" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="l-features-head reveal">
+        <div class="section-tag">Capacidades</div>
+        <h2 class="section-title">Todo colapsa<br>hacia el centro</h2>
+        <p class="section-sub">Cada función de VOID está diseñada para atraer complejidad y devolver simplicidad.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <div class="feature-icon"><svg>
+              <use href="#ico-void" />
+            </svg></div>
+          <h3 class="feature-title">Singularidad de contexto</h3>
+          <p class="feature-desc">VOID recuerda el hilo de cada conversación. No tienes que repetirte ni dar contexto
+            desde cero cada vez.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="feature-icon"><svg>
+              <use href="#ico-orbit" />
+            </svg></div>
+          <h3 class="feature-title">Gravedad multimodal</h3>
+          <p class="feature-desc">Texto, código, documentos, ideas en bruto. VOID trabaja con lo que tienes, en el
+            formato que tienes.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="feature-icon"><svg>
+              <use href="#ico-bolt" />
+            </svg></div>
+          <h3 class="feature-title">Velocidad de escape</h3>
+          <p class="feature-desc">Respuestas inmediatas, sin carga, sin fricción. El tiempo entre pregunta y respuesta
+            útil es prácticamente cero.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- BIG FEATURE -->
+    <div class="l-bigfeature reveal" id="about">
+      <div class="bigfeature-inner">
+        <div>
+          <div class="bigfeature-tag">Core Engine</div>
+          <h2 class="bigfeature-title">Un chat que<br>piensa diferente</h2>
+          <p class="bigfeature-desc">VOID no es otro chatbot. Es una herramienta construida para quienes necesitan
+            respuestas de fondo — donde cada conversación acumula contexto y cada respuesta está calibrada a lo que
+            realmente preguntas.</p>
+          <div class="bigfeature-stats">
+            <div class="stat-box">
+              <div class="stat-num">∞</div>
+              <div class="stat-label">Conversaciones</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-num">&lt;1s</div>
+              <div class="stat-label">Latencia media</div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-mockup">
+          <div class="chat-mockup-header">
+            <div class="chat-mockup-dots">
+              <span class="d1"></span><span class="d2"></span><span class="d3"></span>
+            </div>
+            <div class="chat-mockup-title">VOID — Nueva conversación</div>
+          </div>
+          <div class="chat-mockup-body">
+            <div class="cm-msg ai">
+              <div class="cm-bubble ai">Hola. ¿En qué puedo ayudarte?</div>
+            </div>
+            <div class="cm-msg user">
+              <div class="cm-avatar user">V</div>
+              <div class="cm-bubble user">Explícame la teoría de cuerdas en 3 líneas</div>
+            </div>
+            <div class="cm-msg ai">
+              <div class="cm-bubble ai">Las partículas fundamentales son cuerdas vibrantes unidimensionales. Su
+                frecuencia determina su masa y carga. Ofrece un marco para unificar relatividad y mecánica cuántica,
+                aunque aún carece de evidencia experimental.</div>
+            </div>
+          </div>
+          <div class="cm-input-bar">
+            <div class="cm-input-fake"><span class="cm-input-fake-text">Escribe tu mensaje...</span></div>
+            <div class="cm-send"><svg style="width:14px;height:14px">
+                <use href="#ico-arrow" />
+              </svg></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WHITELIST -->
+    <section id="whitelist" class="l-whitelist">
+      <div class="l-whitelist-inner reveal">
+        <div class="l-whitelist-badge">
+          <span class="l-whitelist-dot"></span>
+          Acceso limitado
+        </div>
+        <h2 class="l-whitelist-title">VOID no es<br>para todos.</h2>
+        <p class="l-whitelist-sub">El acceso está limitado a un número reducido de usuarios durante esta fase. Si
+          quieres formar parte del programa de acceso anticipado, solicita tu plaza a continuación.</p>
+        <div class="l-whitelist-counter reveal">
+          <div class="l-whitelist-bar-wrap">
+            <div class="l-whitelist-bar">
+              <div class="l-whitelist-bar-fill"></div>
+            </div>
+            <div class="l-whitelist-bar-labels">
+              <span>0 plazas ocupadas</span>
+              <span class="l-whitelist-bar-limit">Límite: 50</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn-whitelist" onclick="app.showAuth('register')">
+          <span class="btn-whitelist-dot"></span>
+          Solicitar acceso a la Whitelist
+          <svg class="icon" style="width:16px;height:16px">
+            <use href="#ico-arrow" />
+          </svg>
+        </button>
+        <p class="l-whitelist-note">Solo se admiten solicitudes. El acceso no está garantizado.</p>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="l-footer">
+      <div class="l-footer-top">
+        <div>
+          <div class="l-footer-logo">VOID</div>
+          <p class="l-footer-tagline">Inteligencia artificial de alto rendimiento para equipos y usuarios que necesitan
+            respuestas precisas, contexto sostenido y cero ruido.</p>
+        </div>
+        <div class="l-footer-col">
+          <h4>Producto</h4>
+          <ul>
+            <li><a href="#features">Capacidades</a></li>
+            <li><a href="#about">Cómo funciona</a></li>
+            <li><a href="#whitelist">Acceso anticipado</a></li>
+            <li><a href="#" onclick="app.openModal('modal-changelog');return false;">Changelog</a></li>
+          </ul>
+        </div>
+        <div class="l-footer-col">
+          <h4>Soporte</h4>
+          <ul>
+            <li><a href="#" onclick="app.openModal('modal-faq');return false;">FAQ</a></li>
+            <li><a href="#" onclick="app.openModal('modal-contact');return false;">Contacto</a></li>
+          </ul>
+        </div>
+        <div class="l-footer-col">
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="#" onclick="app.openModal('modal-privacy');return false;">Privacidad</a></li>
+            <li><a href="#" onclick="app.openModal('modal-terms');return false;">Términos</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="l-footer-bottom">
+        <p>© 2026 VOID Intelligence. Todos los derechos reservados.</p>
+        <p>Potenciado por Google Gemini y OpenAI <svg
+            style="width:10px;height:10px;color:var(--accent);display:inline;vertical-align:middle">
+            <use href="#ico-spark" />
+          </svg></p>
+      </div>
+    </footer>
+
+  </div><!-- /page-landing -->
+
+  <!-- ==================== AUTH PAGE ==================== -->
+  <div id="page-auth" class="page">
+    <div class="auth-bg"></div>
+    <a href="#" class="auth-back" onclick="app.showPage('landing'); return false;">
+      <svg class="icon">
+        <use href="#ico-arrow-left" />
+      </svg> Volver
+    </a>
+
+    <div class="auth-box">
+      <div class="auth-logo">VOID</div>
+      <h2 class="auth-headline">Entra al horizonte</h2>
+      <p class="auth-sub">Tu inteligencia, amplificada por el vacío.</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="app.switchAuthTab('login')">Iniciar sesión</button>
+        <button class="auth-tab" id="tab-register" onclick="app.switchAuthTab('register')">Registrarse</button>
+      </div>
+
+      <!-- Login form -->
+      <form class="form-panel active" id="form-login" onsubmit="app.handleLogin(event)">
+        <button type="button" class="btn-google" onclick="app.loginWithGoogle()">
+          <svg class="btn-google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Continuar con Google
+        </button>
+        <div class="auth-divider"><span>o con email</span></div>
+        <div class="form-field">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" placeholder="tu@email.com" id="login-email" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Contraseña</label>
+          <input class="form-input" type="password" placeholder="••••••••" id="login-password" required>
+        </div>
+        <button type="submit" class="btn-submit">
+          Entrar al vacío <svg class="icon">
+            <use href="#ico-arrow" />
+          </svg>
+        </button>
+      </form>
+
+      <!-- Register form -->
+      <form class="form-panel" id="form-register" onsubmit="app.handleRegister(event)">
+        <button type="button" class="btn-google" onclick="app.loginWithGoogle()">
+          <svg class="btn-google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Continuar con Google
+        </button>
+        <div class="auth-divider"><span>o con email</span></div>
+        <div class="form-field">
+          <label class="form-label">Nombre</label>
+          <input class="form-input" type="text" placeholder="Tu nombre" id="reg-name" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" placeholder="tu@email.com" id="reg-email" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Contraseña</label>
+          <input class="form-input" type="password" placeholder="Mínimo 6 caracteres" id="reg-password" minlength="6"
+            required>
+        </div>
+        <button type="submit" class="btn-submit">
+          Crear cuenta gratis <svg class="icon">
+            <use href="#ico-arrow" />
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div><!-- /page-auth -->
+
+  <!-- ==================== CHAT PAGE ==================== -->
+  <div id="page-chat" class="page">
+
+    <!-- MOBILE SIDEBAR BACKDROP -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="app.closeSidebar()"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="chat-sidebar" id="chat-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">VOID</div>
+        <button class="sidebar-collapse" onclick="app.toggleSidebar()" title="Colapsar">
+          <svg class="icon">
+            <use href="#ico-menu" />
+          </svg>
+        </button>
+      </div>
+      <button class="sidebar-new-chat" onclick="app.newConversation()">
+        <svg class="icon snc-icon" style="width:16px;height:16px;flex-shrink:0;">
+          <use href="#ico-plus" />
+        </svg>
+        <span class="snc-text">Nueva conversación</span>
+      </button>
+
+      <div class="sidebar-section-label">Historial</div>
+      <div class="sidebar-convs" id="sidebar-convs">
+        <!-- Injected via JS -->
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="sidebar-user-avatar" id="user-avatar-sb" onclick="app.openProfile()" title="Editar perfil" style="cursor:pointer;">V</div>
+        <div class="sidebar-user-info" style="cursor:pointer;" onclick="app.openProfile()">
+          <div class="sidebar-user-name" id="user-name-sb">Usuario</div>
+          <div class="sidebar-user-email" id="user-email-sb"></div>
+        </div>
+        <button class="sidebar-user-profile" onclick="app.openProfile()" title="Ajustes de perfil">
+          <svg class="icon">
+            <use href="#ico-user" />
+          </svg>
+        </button>
+        <button class="sidebar-user-logout" onclick="app.handleLogout()" title="Cerrar sesión">
+          <svg class="icon">
+            <use href="#ico-logout" />
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="chat-main">
+      <div class="chat-topbar">
+        <div class="chat-topbar-left">
+          <button class="mobile-menu-btn" onclick="app.toggleSidebar()">
+            <svg class="icon">
+              <use href="#ico-menu" />
+            </svg>
+          </button>
+          <div class="chat-model-selector">
+            <span class="model-dot" id="model-status-dot"></span>
+            <span id="model-status-text">VOID Base (Mock)</span>
+          </div>
+        </div>
+        <div class="chat-topbar-actions">
+          <button class="topbar-action" onclick="app.clearChat()" title="Limpiar Chat">
+            <svg class="icon">
+              <use href="#ico-trash" />
+            </svg>
+          </button>
+          <button class="topbar-action" onclick="app.openSettings()" title="Ajustes (API Key)">
+            <svg class="icon">
+              <use href="#ico-settings" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="chat-messages">
+        <div id="chat-messages-inner" class="chat-messages-inner">
+          <!-- Messages injected here -->
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <div class="chat-input-inner">
+          <!-- Attachment previews -->
+          <div class="chat-attachments" id="chat-attachments"></div>
+          <div class="chat-input-box">
+            <!-- Hidden file input -->
+            <input type="file" id="file-input" multiple
+              accept=".txt,.md,.pdf,.csv,.json,.js,.ts,.py,.html,.css,.xml,.yaml,.yml,.docx,.jpg,.jpeg,.png,.gif,.webp"
+              style="display:none" onchange="app.handleFiles(this.files)">
+            <button class="chat-attach-btn" onclick="document.getElementById('file-input').click()"
+              title="Adjuntar archivos">
+              <svg class="icon" style="width:16px;height:16px">
+                <use href="#ico-attach" />
+              </svg>
+            </button>
+            <textarea id="chat-input" placeholder="Envía un mensaje a VOID..." rows="1"
+              onkeydown="app.handleInputKeydown(event)" oninput="app.autoResize(this)"></textarea>
+            <button class="chat-send-btn" id="chat-send" onclick="app.sendMessage()">
+              <svg class="icon">
+                <use href="#ico-arrow" />
+              </svg>
+            </button>
+          </div>
+          <p class="chat-footer-note">VOID puede cometer errores. Verifica información importante. ✦</p>
+        </div>
+      </div>
+    </main>
+
+  </div><!-- /page-chat -->
+
+  <!-- ==================== SETTINGS MODAL ==================== -->
+  <div class="modal-overlay" id="modal-settings">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Ajustes del Núcleo</h3>
+        <button class="modal-close" onclick="app.closeSettings()">
+          <svg class="icon">
+            <use href="#ico-close" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Conecta VOID a un motor real. Elige tu proveedor e introduce tu API Key. Sin clave, VOID
+          usará su motor de simulación interno (Mock).</p>
+
+        <div class="form-field">
+          <label class="form-label">Proveedor de IA</label>
+          <div class="provider-selector" id="provider-selector">
+            <button class="provider-btn active" data-provider="gemini" onclick="app.selectProvider('gemini')">
+              <span class="provider-icon">✦</span> Google Gemini
+            </button>
+            <button class="provider-btn" data-provider="openai" onclick="app.selectProvider('openai')">
+              <span class="provider-icon">⬡</span> OpenAI
+            </button>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" id="apikey-label">Google Gemini API Key</label>
+          <input class="form-input" type="password" placeholder="AIza..." id="settings-apikey">
+          <p class="form-hint" id="apikey-hint">Obtén tu clave en <a href="https://aistudio.google.com/apikey"
+              target="_blank">Google AI Studio</a></p>
+        </div>
+
+        <div class="settings-status" id="settings-status">
+          Estado actual: <span class="status-badge mock">Simulación (Mock)</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="app.closeSettings()">Cancelar</button>
+        <button class="btn-accent" onclick="app.saveSettings()">Guardar Ajustes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL TÉRMINOS ==================== -->
+  <div class="modal-overlay" id="modal-terms">
+    <div class="modal-content modal-content-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">Términos y Condiciones</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-terms')">
+          <svg class="icon">
+            <use href="#ico-close" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body modal-body-scroll">
+        <p class="modal-section-title">1. Aceptación</p>
+        <p class="modal-text">Al acceder y utilizar VOID, aceptas quedar vinculado por estos Términos y Condiciones. Si
+          no estás de acuerdo con alguna parte de estos términos, no podrás acceder al servicio.</p>
+        <p class="modal-section-title">2. Acceso por Whitelist</p>
+        <p class="modal-text">VOID opera bajo un sistema de acceso restringido. La solicitud de acceso a la Whitelist no
+          garantiza la admisión. El equipo de VOID se reserva el derecho de aceptar o rechazar solicitudes sin necesidad
+          de justificación.</p>
+        <p class="modal-section-title">3. Uso del Servicio</p>
+        <p class="modal-text">Te comprometes a utilizar VOID únicamente para fines legales y de acuerdo con estos
+          términos. Queda prohibido el uso del servicio para generar contenido ilegal, difamatorio, dañino o que
+          infrinja derechos de terceros.</p>
+        <p class="modal-section-title">4. API Keys y Proveedores</p>
+        <p class="modal-text">VOID permite la integración con proveedores externos como Google Gemini y OpenAI mediante
+          claves API propias. Eres responsable de la seguridad de tus claves y del uso que hagas de dichos servicios
+          bajo sus respectivos términos.</p>
+        <p class="modal-section-title">5. Propiedad Intelectual</p>
+        <p class="modal-text">Todo el contenido, diseño y código de VOID es propiedad exclusiva de VOID Intelligence.
+          Queda prohibida su reproducción total o parcial sin autorización expresa.</p>
+        <p class="modal-section-title">6. Limitación de Responsabilidad</p>
+        <p class="modal-text">VOID se proporciona "tal cual". No garantizamos la exactitud, fiabilidad o continuidad del
+          servicio. En ningún caso seremos responsables de daños directos, indirectos o consecuentes derivados del uso
+          del servicio.</p>
+        <p class="modal-section-title">7. Modificaciones</p>
+        <p class="modal-text">Nos reservamos el derecho de modificar estos términos en cualquier momento. Los cambios
+          entrarán en vigor inmediatamente tras su publicación. El uso continuado del servicio implica la aceptación de
+          los nuevos términos.</p>
+        <p class="modal-section-title">8. Contacto</p>
+        <p class="modal-text">Para cualquier consulta sobre estos términos, puedes contactarnos a través de los canales
+          oficiales de VOID Intelligence.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-accent" onclick="app.closeModal('modal-terms')">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL PRIVACIDAD ==================== -->
+  <div class="modal-overlay" id="modal-privacy">
+    <div class="modal-content modal-content-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">Política de Privacidad</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-privacy')">
+          <svg class="icon">
+            <use href="#ico-close" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body modal-body-scroll">
+        <p class="modal-section-title">1. Datos que Recopilamos</p>
+        <p class="modal-text">VOID almacena localmente en tu dispositivo los datos de sesión, historial de
+          conversaciones y configuración de API. No transmitimos ni almacenamos esta información en servidores externos
+          propios.</p>
+        <p class="modal-section-title">2. Uso de los Datos</p>
+        <p class="modal-text">Los datos almacenados localmente se utilizan exclusivamente para mantener tu sesión activa
+          y recuperar el historial de conversaciones entre sesiones. No vendemos ni compartimos tus datos con terceros.
+        </p>
+        <p class="modal-section-title">3. Proveedores Externos</p>
+        <p class="modal-text">Al usar tu propia API Key, tus mensajes se envían directamente a los servidores del
+          proveedor elegido (Google, OpenAI). VOID no intercepta ni almacena el contenido de dichas comunicaciones.
+          Consulta las políticas de privacidad de cada proveedor.</p>
+        <p class="modal-section-title">4. Cookies y Almacenamiento Local</p>
+        <p class="modal-text">VOID utiliza localStorage del navegador para persistir datos de sesión. No utilizamos
+          cookies de rastreo ni herramientas de analítica de terceros.</p>
+        <p class="modal-section-title">5. Tus Derechos</p>
+        <p class="modal-text">Puedes eliminar todos tus datos en cualquier momento cerrando sesión y limpiando el
+          almacenamiento local de tu navegador. Al cerrar sesión se elimina el token de sesión activo.</p>
+        <p class="modal-section-title">6. Seguridad</p>
+        <p class="modal-text">Implementamos medidas razonables para proteger la información almacenada localmente. Sin
+          embargo, ningún sistema es completamente seguro. Te recomendamos no compartir tu dispositivo con personas no
+          autorizadas.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-accent" onclick="app.closeModal('modal-privacy')">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CHANGELOG -->
+  <div class="modal-overlay" id="modal-changelog">
+    <div class="modal-content modal-content-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">Changelog</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-changelog')">
+          <svg class="icon">
+            <use href="#ico-close" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body modal-body-scroll">
+        <p class="modal-section-title">v0.9.2 — Marzo 2026</p>
+        <p class="modal-text">Mejoras de rendimiento en el motor de respuesta. Reducción del tiempo de latencia media en
+          un 18%. Correcciones menores en la interfaz móvil.</p>
+        <p class="modal-section-title">v0.9.1 — Febrero 2026</p>
+        <p class="modal-text">Soporte para adjuntar archivos en el chat. Integración con Google Gemini como proveedor
+          adicional. Historial de conversaciones persistente entre sesiones.</p>
+        <p class="modal-section-title">v0.9.0 — Enero 2026</p>
+        <p class="modal-text">Lanzamiento de la beta privada. Acceso restringido a usuarios de la whitelist. Soporte
+          inicial para OpenAI GPT-4o.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-accent" onclick="app.closeModal('modal-changelog')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: FAQ -->
+  <div class="modal-overlay" id="modal-faq">
+    <div class="modal-content modal-content-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">Preguntas Frecuentes</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-faq')">
+          <svg class="icon">
+            <use href="#ico-close" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body modal-body-scroll">
+        <p class="modal-section-title">¿Qué es VOID?</p>
+        <p class="modal-text">VOID es una interfaz de inteligencia artificial diseñada para ofrecer respuestas precisas
+          y de alto rendimiento. Funciona conectándose a proveedores externos como OpenAI o Google Gemini a través de tu
+          propia API Key.</p>
+        <p class="modal-section-title">¿Cómo obtengo acceso?</p>
+        <p class="modal-text">El acceso está actualmente limitado a través de un programa de whitelist. Puedes solicitar
+          tu plaza desde la sección de acceso anticipado de la página principal. Las solicitudes se revisan de forma
+          manual.</p>
+        <p class="modal-section-title">¿Necesito una API Key?</p>
+        <p class="modal-text">Sí. VOID no almacena ni gestiona claves propias. Para obtener respuestas reales debes
+          configurar tu API Key de OpenAI o Google Gemini desde el panel de ajustes. Sin ella, VOID opera en modo de
+          demostración.</p>
+        <p class="modal-section-title">¿Mis datos están seguros?</p>
+        <p class="modal-text">VOID almacena toda la información localmente en tu dispositivo. No transmitimos ni
+          almacenamos conversaciones en servidores propios. Los mensajes se envían directamente al proveedor que hayas
+          configurado.</p>
+        <p class="modal-section-title">¿En qué dispositivos funciona?</p>
+        <p class="modal-text">VOID es una aplicación web compatible con cualquier navegador moderno en escritorio y
+          móvil. No requiere instalación.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-accent" onclick="app.closeModal('modal-faq')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONTACT -->
+  <div class="modal-overlay" id="modal-contact">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Contacto</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-contact')">
+          <svg class="icon">
+            <use href="#ico-close" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Para consultas sobre acceso, soporte técnico o cualquier otra cuestión, puedes
+          contactarnos a través de los siguientes canales.</p>
+        <p class="modal-section-title">Email</p>
+        <p class="modal-text"><a href="mailto:hola@voidintelligence.ai"
+            style="color:var(--accent);text-decoration:none;">hola@voidintelligence.ai</a></p>
+        <p class="modal-section-title">Tiempo de respuesta</p>
+        <p class="modal-text">Respondemos en un plazo de 24 a 48 horas en días laborables.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-accent" onclick="app.closeModal('modal-contact')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL PERFIL ==================== -->
+  <div class="modal-overlay" id="modal-profile">
+    <div class="modal-content modal-content-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">Ajustes de Perfil</h3>
+        <button class="modal-close" onclick="app.closeProfile()">
+          <svg class="icon"><use href="#ico-close" /></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Avatar section -->
+        <div class="profile-avatar-section">
+          <div class="profile-avatar-wrap">
+            <div class="profile-avatar-large" id="profile-avatar-preview">V</div>
+            <button class="profile-avatar-edit-btn" onclick="document.getElementById('profile-avatar-file').click()" title="Cambiar foto">
+              <svg class="icon" style="width:14px;height:14px;"><use href="#ico-camera" /></svg>
+            </button>
+            <input type="file" id="profile-avatar-file" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none" onchange="app.handleAvatarFile(this)">
+          </div>
+          <div class="profile-avatar-info">
+            <p class="profile-avatar-hint">JPG, PNG o GIF. Máx 2 MB.</p>
+            <button class="btn-ghost profile-avatar-remove" onclick="app.removeAvatar()">Eliminar foto</button>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="profile-divider"></div>
+
+        <!-- Name -->
+        <div class="form-field">
+          <label class="form-label">Nombre</label>
+          <input class="form-input" type="text" id="profile-name" placeholder="Tu nombre" autocomplete="off">
+        </div>
+
+        <!-- Email -->
+        <div class="form-field">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" id="profile-email" placeholder="tu@email.com" autocomplete="off">
+          <p class="form-hint">Si cambias el email tendrás que volver a iniciar sesión.</p>
+        </div>
+
+        <!-- Divider -->
+        <div class="profile-divider"></div>
+
+        <!-- Password section -->
+        <p class="profile-section-label">Cambiar contraseña</p>
+        <div class="form-field">
+          <label class="form-label">Contraseña actual</label>
+          <div class="input-password-wrap">
+            <input class="form-input" type="password" id="profile-pass-current" placeholder="••••••••" autocomplete="current-password">
+            <button class="input-eye-btn" type="button" onclick="app.togglePassVis('profile-pass-current', this)">
+              <svg class="icon" style="width:16px;height:16px;"><use href="#ico-eye" /></svg>
+            </button>
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Nueva contraseña</label>
+          <div class="input-password-wrap">
+            <input class="form-input" type="password" id="profile-pass-new" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+            <button class="input-eye-btn" type="button" onclick="app.togglePassVis('profile-pass-new', this)">
+              <svg class="icon" style="width:16px;height:16px;"><use href="#ico-eye" /></svg>
+            </button>
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Confirmar nueva contraseña</label>
+          <div class="input-password-wrap">
+            <input class="form-input" type="password" id="profile-pass-confirm" placeholder="Repite la contraseña" autocomplete="new-password">
+            <button class="input-eye-btn" type="button" onclick="app.togglePassVis('profile-pass-confirm', this)">
+              <svg class="icon" style="width:16px;height:16px;"><use href="#ico-eye" /></svg>
+            </button>
+          </div>
+          <p class="form-hint">Deja en blanco si no quieres cambiar la contraseña.</p>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="app.closeProfile()">Cancelar</button>
+        <button class="btn-accent" onclick="app.saveProfile()">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Handle OAuth error redirect from server
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const err = params.get("oauth_error");
+      if (err) {
+        // Clean URL without reload
+        history.replaceState(null, "", window.location.pathname);
+        // Wait for app to init, then show toast + open auth
+        window.addEventListener("void:ready", function() {
+          app.showAuth("login");
+          setTimeout(() => app.showToast("\u26a0\ufe0f " + err), 300);
+        }, { once: true });
+      }
+    })();
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>
