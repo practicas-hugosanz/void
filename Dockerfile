@@ -7,5 +7,6 @@ RUN apt-get update && apt-get install -y libsqlite3-dev && \
 
 COPY . /var/www/html/
 RUN mkdir -p /var/www/html/data && chmod 777 /var/www/html/data
+RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
 
 EXPOSE 80
