@@ -1323,7 +1323,6 @@ const app = {
     if (!res.ok) { this.showToast('\u26a0\ufe0f ' + res.error); return; }
     this.apiProvider = provider;
     this.apiModel = model;
-    // Re-fetch user to confirm server stored the key
     try {
       const me = await apiFetch(API.auth + '?action=me');
       this.useProxy = me.ok ? !!me.data.api_key : !!key;
