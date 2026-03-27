@@ -1390,13 +1390,13 @@ body::before {
   display: flex; gap: 8px; margin-top: 6px;
 }
 .provider-btn {
-  flex: 1; padding: 10px 14px; border-radius: 8px;
+  flex: 1; padding: 10px 8px; border-radius: 8px;
   border: 1px solid var(--border2);
   background: var(--bg); color: var(--muted);
-  cursor: pointer; font-size: 0.83rem; font-family: inherit;
-  display: flex; align-items: center; gap: 6px;
+  cursor: pointer; font-size: 0.78rem; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
   transition: all 0.2s;
-  font-weight: 600;
+  font-weight: 600; white-space: nowrap; overflow: hidden;
 }
 .provider-btn:hover { border-color: var(--accent); color: var(--text); }
 .provider-btn.active {
