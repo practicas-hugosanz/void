@@ -14,10 +14,10 @@ $authed = $secret && hash_equals(ADMIN_SECRET, $secret);
 
 if ($authed && !isset($_COOKIE['void_admin_secret'])) {
     setcookie('void_admin_secret', $secret, [
-        'expires'  => time() + 86400 * 7,
-        'path'     => '/',
-        'httponly' => true,
-        'samesite' => 'Strict',
+    'expires'  => time() + 86400 * 7,
+    'path'     => '/', // Esto permite que el index.php también vea la sesión 
+    'httponly' => true,
+    'samesite' => 'Lax', // Lax es mejor para Railway que Strict 
     ]);
 }
 
