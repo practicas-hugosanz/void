@@ -302,9 +302,45 @@ tbody tr:hover td { background:var(--bg3); }
 .actions { display:flex; gap:6px; }
 
 @media (max-width:700px) {
-  .stats-grid { grid-template-columns:repeat(2,1fr); }
-  .wrap { padding:24px 16px 60px; }
-  td, th { padding:10px 12px; }
+  /* Layout */
+  .wrap { padding:20px 14px 60px; }
+  .admin-header { padding:0 16px; }
+
+  /* Stats */
+  .stats-grid { grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:28px; }
+  .stat-card { padding:16px; }
+  .stat-value { font-size:28px; }
+
+  /* Login */
+  .login-card { width:100%; margin:0 16px; padding:28px 20px; }
+
+  /* Tables → card layout por fila */
+  .table-wrap { border-radius:var(--r); overflow:hidden; }
+  table, thead, tbody, tr { display:block; width:100%; }
+  thead { display:none; }
+  tbody tr {
+    display:flex; flex-direction:column; gap:4px;
+    padding:14px; border-bottom:1px solid var(--border);
+  }
+  tbody tr:last-child { border-bottom:none; }
+  td {
+    display:flex; align-items:flex-start; gap:8px;
+    padding:0; border:none; font-size:13px;
+    background:transparent !important;
+  }
+  td::before {
+    content: attr(data-label);
+    font-size:10px; text-transform:uppercase; letter-spacing:.8px;
+    color:var(--muted); min-width:72px; flex-shrink:0; padding-top:2px;
+  }
+  td.td-empty { justify-content:center; padding:32px 0; }
+  td.td-empty::before { display:none; }
+
+  /* Actions */
+  .actions { flex-wrap:wrap; gap:6px; width:100%; }
+  .btn-approve, .btn-reject { flex:1; justify-content:center; padding:8px 10px; }
+
+  .section-head { margin-bottom:12px; }
 }
 </style>
 </head>
@@ -427,16 +463,16 @@ tbody tr:hover td { background:var(--bg3); }
           $sl = match($r['status']) { 'approved'=>'Aprobado', 'rejected'=>'Rechazado', default=>'Pendiente' };
         ?>
           <tr>
-            <td class="td-name"><?= htmlspecialchars($r['name'] ?? '—') ?></td>
-            <td class="td-email"><?= htmlspecialchars($r['email']) ?></td>
-            <td>
+            <td class="td-name" data-label="Nombre"><?= htmlspecialchars($r['name'] ?? '—') ?></td>
+            <td class="td-email" data-label="Email"><?= htmlspecialchars($r['email']) ?></td>
+            <td data-label="Estado">
               <span class="status-badge <?= $sc ?>">
                 <svg class="icon icon-sm"><use href="#ico-<?= $si ?>"/></svg><?= $sl ?>
               </span>
             </td>
-            <td class="td-date"><?= htmlspecialchars(substr($r['requested_at'] ?? '', 0, 16)) ?></td>
-            <td class="td-date"><?= htmlspecialchars(substr($r['reviewed_at'] ?? '—', 0, 16)) ?></td>
-            <td>
+            <td class="td-date" data-label="Solicitado"><?= htmlspecialchars(substr($r['requested_at'] ?? '', 0, 16)) ?></td>
+            <td class="td-date" data-label="Revisado"><?= htmlspecialchars(substr($r['reviewed_at'] ?? '—', 0, 16)) ?></td>
+            <td data-label="Acciones">
               <div class="actions">
                 <?php if ($r['status'] !== 'approved'): ?>
                   <form method="POST" action="/admin">
@@ -482,21 +518,21 @@ tbody tr:hover td { background:var(--bg3); }
         <?php endif; ?>
         <?php foreach ($users as $u): ?>
           <tr>
-            <td class="td-date"><?= (int)$u['id'] ?></td>
-            <td class="td-name">
+            <td class="td-date" data-label="ID"><?= (int)$u['id'] ?></td>
+            <td class="td-name" data-label="Nombre">
               <span style="display:inline-flex;align-items:center;gap:8px;">
                 <svg class="icon icon-sm" style="color:var(--muted)"><use href="#ico-user"/></svg>
                 <?= htmlspecialchars($u['name']) ?>
               </span>
             </td>
-            <td class="td-email"><?= htmlspecialchars($u['email']) ?></td>
-            <td>
+            <td class="td-email" data-label="Email"><?= htmlspecialchars($u['email']) ?></td>
+            <td data-label="Proveedor">
               <span class="provider-badge">
                 <svg class="icon icon-sm"><use href="#ico-spark"/></svg>
                 <?= htmlspecialchars($u['api_provider'] ?? 'gemini') ?>
               </span>
             </td>
-            <td class="td-date"><?= htmlspecialchars(substr($u['created_at'] ?? '', 0, 16)) ?></td>
+            <td class="td-date" data-label="Registro"><?= htmlspecialchars(substr($u['created_at'] ?? '', 0, 16)) ?></td>
           </tr>
         <?php endforeach; ?>
       </tbody>
