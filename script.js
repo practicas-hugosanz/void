@@ -5,14 +5,14 @@
  */
 
 // ── API base path — adjust if your PHP files live in a subdirectory ──────────
-const API_BASE = ''; 
+const API_BASE = 'https://void-production-32d7.up.railway.app';
 
 const API = {
-  auth:      '/api/auth.php',
-  user:      '/api/user.php',
-  convs:     '/api/conversations.php',
-  proxy:     '/api/proxy.php',
-  whitelist: '/api/whitelist.php',
+  auth:      API_BASE + '/api/auth.php',
+  user:      API_BASE + '/api/user.php',
+  convs:     API_BASE + '/api/conversations.php',
+  proxy:     API_BASE + '/api/proxy.php',
+  whitelist: API_BASE + '/api/whitelist.php',
 };
 
 
@@ -42,34 +42,14 @@ function defaultModel(provider) {
   return MODELS[provider]?.[0]?.id ?? '';
 }
 
-async apiFetch(url, method = 'GET', body = null) {
-  const options = {
-    method,
-    headers: {},
-    // CRÍTICO: Permite enviar cookies de sesión en todas las peticiones
-    credentials: 'include', 
-  };
-
-  if (body) {
-    options.headers['Content-Type'] = 'application/json';
-    options.body = JSON.stringify(body);
-  }
-
-  try {
-    const res = await fetch(url, options);
-    // Si la respuesta es un 401, el usuario no está logueado (esto es normal si no ha iniciado sesión)
-    if (res.status === 401 && !url.includes('action=login')) {
-      return { ok: false, error: 'No autorizado' };
-    }
-    
-    return await res.json().catch(() => ({ 
-      ok: false, 
-      error: 'Respuesta inválida del servidor' 
-    }));
-  } catch (err) {
-    console.error("Fetch Error:", err);
-    return { ok: false, error: 'Error de conexión con el servidor' };
-  }
+async function apiFetch(url, options = {}) {
+  const res = await fetch(url, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    ...options,
+  });
+  const json = await res.json().catch(() => ({ ok: false, error: 'Respuesta inválida del servidor' }));
+  return json; // { ok, data } | { ok: false, error }
 }
 
 const app = {
