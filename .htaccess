@@ -1,16 +1,34 @@
-Options -Indexes
-RewriteEngine On
+# ----------------------------------------------------------------------
+# Configuración VOID - Railway
+# ----------------------------------------------------------------------
 
-# 1. Define el índice para que la raíz / no dé error 403
+# 1. Evitar que se listen carpetas si no hay un index
+Options -Indexes
+
+# 2. Definir los archivos de entrada por defecto
 DirectoryIndex index.php index.html
 
-# 2. Quita .php de la URL SOLO si el usuario no la puso
-# Esto NO afecta a las llamadas internas de script.js que ya usan .php
+RewriteEngine On
+
+# 3. ELIMINAR DOBLES BARRAS (Arregla el error //api/auth.php en la consola) [cite: 1]
+# Esto asegura que las cookies de sesión se envíen correctamente al Index
+RewriteCond %{THE_REQUEST} //
+RewriteRule .* /$0 [R=301,L]
+
+# 4. QUITAR EXTENSIÓN .PHP DE LA URL
+# Permite entrar a /admin en lugar de /admin.php
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}\.php -f
 RewriteRule ^([^\.]+)$ $1.php [NC,L,QSA]
 
-# 3. Protección de archivos (esto es estándar y seguro)
+# 5. SEGURIDAD: Bloquear acceso a archivos sensibles
+# Protege tus bases de datos SQLite y logs
 <FilesMatch "\.(sqlite|db|log)$">
-    Require all denied
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
