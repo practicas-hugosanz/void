@@ -2,7 +2,7 @@ Options -Indexes
 RewriteEngine On
 
 # Asegurar que el servidor lea el index.php si se entra a la raíz
-DirectoryIndex index.php
+DirectoryIndex index.html
 
 # Quitar extensión .php
 RewriteCond %{REQUEST_FILENAME} !-d
