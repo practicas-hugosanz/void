@@ -1,22 +1,9 @@
-# 1. Configuración básica
-Options -Indexes
-DirectoryIndex index.php index.html
+RewriteEngine On
 
-<IfModule mod_rewrite.c>
-    RewriteEngine On
+# Si el archivo existe (como api/auth.php), cárgalo normalmente
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
 
-    # 2. Forzar HTTPS de forma compatible con Railway
-    RewriteCond %{HTTP:X-Forwarded-Proto} !https
-    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
-    # 3. Quitar .php de la URL pero permitir que los scripts funcionen
-    # Si el archivo existe con .php, úsalo
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME}\.php -f
-    RewriteRule ^([^\.]+)$ $1.php [NC,L,QSA]
-</IfModule>
-
-# 4. Seguridad para la base de datos
-<FilesMatch "\.(sqlite|db|log)$">
-    Require all denied
-</FilesMatch>
+# Si el usuario escribe /admin, carga /admin.php internamente
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^([^\.]+)$ $1.php [NC,L]
