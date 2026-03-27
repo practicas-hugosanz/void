@@ -7,8 +7,10 @@ RUN apt-get update && apt-get install -y \
     php8.2-pgsql \
     php8.2-curl \
     php8.2-pdo \
+    php-pdo \
     curl \
-    && apt-get clean
+    && apt-get clean \
+    && phpenmod pdo_pgsql
 
 COPY . /var/www/html/
 RUN echo '<?php echo "PHP OK"; ?>' > /var/www/html/test.php
