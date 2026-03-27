@@ -52,9 +52,9 @@ switch ($action) {
         if ($chk->fetch()) json_err('El email ya está registrado');
 
         $hash = password_hash($pass, PASSWORD_BCRYPT);
-        $stmt = $db->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
+        $stmt = $db->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?) RETURNING id");
         $stmt->execute([$name, $email, $hash]);
-        $userId = (int) $db->lastInsertId();
+        $userId = (int) $stmt->fetchColumn();
 
         $token = create_session($userId);
         json_ok([

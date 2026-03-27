@@ -145,11 +145,10 @@ switch ($action) {
         }
 
         if (!$user) {
-            // Registrar nuevo usuario (sin contraseña — acceso sólo vía OAuth)
             $fakeHash = password_hash(bin2hex(random_bytes(32)), PASSWORD_BCRYPT);
-            $db->prepare("INSERT INTO users (name, email, password, avatar) VALUES (?, ?, ?, ?)")
-               ->execute([$name, $email, $fakeHash, $avatar]);
-            $userId = (int) $db->lastInsertId();
+            $ins = $db->prepare("INSERT INTO users (name, email, password, avatar) VALUES (?, ?, ?, ?) RETURNING id");
+            $ins->execute([$name, $email, $fakeHash, $avatar]);
+            $userId = (int) $ins->fetchColumn();
         } else {
             $userId = (int) $user['id'];
             // Actualizar nombre y avatar si han cambiado en GitHub

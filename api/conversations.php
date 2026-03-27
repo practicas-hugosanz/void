@@ -54,7 +54,7 @@ switch ($action) {
             // Update
             $db->prepare("
                 UPDATE conversations
-                SET title = ?, messages = ?, updated_at = datetime('now')
+                SET title = ?, messages = ?, updated_at = NOW()
                 WHERE id = ? AND user_id = ?
             ")->execute([$title, $messagesJson, $id, $user['id']]);
         } else {

@@ -105,7 +105,7 @@ switch ($action) {
         $db = get_db();
 
         // Aprobar en whitelist
-        $stmt = $db->prepare("UPDATE whitelist SET status = 'approved', reviewed_at = datetime('now') WHERE email = ?");
+        $stmt = $db->prepare("UPDATE whitelist SET status = 'approved', reviewed_at = NOW() WHERE email = ?");
         $stmt->execute([$email]);
         if ($stmt->rowCount() === 0) json_err('Email no encontrado en la whitelist');
 
@@ -132,7 +132,7 @@ switch ($action) {
         if (!$email) json_err('Email requerido');
 
         $db   = get_db();
-        $stmt = $db->prepare("UPDATE whitelist SET status = 'rejected', reviewed_at = datetime('now') WHERE email = ?");
+        $stmt = $db->prepare("UPDATE whitelist SET status = 'rejected', reviewed_at = NOW() WHERE email = ?");
         $stmt->execute([$email]);
 
         if ($stmt->rowCount() === 0) json_err('Email no encontrado en la whitelist');
