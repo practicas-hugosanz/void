@@ -5,7 +5,7 @@
  */
 
 // ── API base path — adjust if your PHP files live in a subdirectory ──────────
-const API_BASE = 'https://voidai.up.railway.app/';
+const API_BASE = 'https://voidai.up.railway.app';
 
 const API = {
   auth:      API_BASE + '/api/auth.php',
@@ -1323,7 +1323,11 @@ const app = {
     if (!res.ok) { this.showToast('\u26a0\ufe0f ' + res.error); return; }
     this.apiProvider = provider;
     this.apiModel = model;
-    this.useProxy = !!key; // if key saved, use server proxy
+    // Re-fetch user to confirm server stored the key
+    try {
+      const me = await apiFetch(API.auth + '?action=me');
+      this.useProxy = me.ok ? !!me.data.api_key : !!key;
+    } catch(e) { this.useProxy = !!key; }
     this.apiKey = key;     // also keep locally for direct mode fallback
     this.updateModelStatus();
     this.closeSettings();
