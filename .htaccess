@@ -1,36 +1,32 @@
-# ----------------------------------------------------------------------
-# CONFIGURACIÓN VOID - OPTIMIZADA PARA RAILWAY
-# ----------------------------------------------------------------------
-
-# 1. Seguridad básica y archivos de entrada
 Options -Indexes
 DirectoryIndex index.php index.html
 
-RewriteEngine On
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-# 2. FORZAR HTTPS Y CORREGIR CABECERAS (Arregla el error Mixed Content)
-# Esto le dice a Apache que confíe en el proxy de Railway para el SSL
-RewriteCond %{HTTP:X-Forwarded-Proto} !https
-RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    # 1. Forzar HTTPS
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# 3. ELIMINAR DOBLES BARRAS (Arregla el error //api/auth.php)
-# Limpia la URL para que las cookies de sesión se envíen siempre bien
-RewriteCond %{THE_REQUEST} //
-RewriteRule .* /$0 [R=301,L]
+    # 2. Eliminar dobles barras
+    RewriteCond %{THE_REQUEST} //
+    RewriteRule .* /$0 [R=301,L]
 
-# 4. QUITAR EXTENSIÓN .PHP PARA HUMANOS
-# Permite entrar a /admin en lugar de /admin.php
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME}\.php -f
-RewriteRule ^([^\.]+)$ $1.php [NC,L,QSA]
+    # 3. NO tocar archivos que ya existen (como api/auth.php)
+    # Esto arregla el error 404 que tienes ahora
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
 
-# 5. SEGURIDAD: Bloquear acceso a archivos sensibles
+    # 4. Quitar extensión .php para navegación estética (/admin)
+    RewriteCond %{REQUEST_FILENAME}\.php -f
+    RewriteRule ^([^\.]+)$ $1.php [NC,L,QSA]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set Content-Security-Policy "upgrade-insecure-requests;"
+</IfModule>
+
 <FilesMatch "\.(sqlite|db|log)$">
-    <IfModule mod_authz_core.c>
-        Require all denied
-    </IfModule>
-    <IfModule !mod_authz_core.c>
-        Order Allow,Deny
-        Deny from all
-    </IfModule>
+    Require all denied
 </FilesMatch>
