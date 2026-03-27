@@ -271,11 +271,11 @@ const app = {
   },
 
   loginWithGoogle() {
-  window.location.href = 'https://void-production-32d7.up.railway.app/api/oauth_google.php?action=redirect';
+  window.location.href = `${API_BASE}/api/oauth_google.php?action=redirect`;
 },
 
   loginWithGithub() {
-  window.location.href = 'https://void-production-32d7.up.railway.app/api/oauth_github.php?action=redirect';
+  window.location.href = `${API_BASE}/api/oauth_github.php?action=redirect`;
 },
 
   // ==========================================
