@@ -1,26 +1,36 @@
 <?php
 /**
  * VOID — Database Connection & Setup
- * Uses SQLite for zero-config deployment. Change to PDO MySQL trivially.
+ * PostgreSQL via PDO — persistente entre deploys en Railway.
+ *
+ * Variable de entorno requerida: DATABASE_URL
+ * Railway la inyecta automáticamente al añadir el plugin de PostgreSQL.
+ * Formato: postgresql://user:pass@host:port/dbname
  */
-
-define('DB_PATH', __DIR__ . '/../data/void.sqlite');
 
 function get_db(): PDO {
     static $pdo = null;
     if ($pdo) return $pdo;
 
-    $dir = dirname(DB_PATH);
-    if (!is_dir($dir)) mkdir($dir, 0750, true);
+    $url = getenv('DATABASE_URL');
+    if (!$url) {
+        throw new \RuntimeException('DATABASE_URL no está definida. Añade el plugin de PostgreSQL en Railway.');
+    }
 
-    $pdo = new PDO('sqlite:' . DB_PATH, null, null, [
+    $parts = parse_url($url);
+    $host  = $parts['host'];
+    $port  = $parts['port'] ?? 5432;
+    $db    = ltrim($parts['path'], '/');
+    $user  = $parts['user'];
+    $pass  = $parts['pass'];
+
+    $dsn = "pgsql:host=$host;port=$port;dbname=$db;sslmode=require";
+
+    $pdo = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
     ]);
-
-    $pdo->exec('PRAGMA journal_mode=WAL');
-    $pdo->exec('PRAGMA foreign_keys=ON');
 
     migrate($pdo);
     return $pdo;
@@ -29,46 +39,51 @@ function get_db(): PDO {
 function migrate(PDO $pdo): void {
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS users (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            name        TEXT    NOT NULL,
-            email       TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-            password    TEXT    NOT NULL,
-            avatar      TEXT    DEFAULT NULL,
-            api_key     TEXT    DEFAULT NULL,
-            api_provider TEXT   DEFAULT 'gemini',
-            created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+            id           SERIAL PRIMARY KEY,
+            name         TEXT        NOT NULL,
+            email        TEXT        NOT NULL UNIQUE,
+            password     TEXT        NOT NULL,
+            avatar       TEXT        DEFAULT NULL,
+            api_key      TEXT        DEFAULT NULL,
+            api_provider TEXT        NOT NULL DEFAULT 'gemini',
+            api_model    TEXT        DEFAULT NULL,
+            created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
 
         CREATE TABLE IF NOT EXISTS conversations (
-            id          TEXT    PRIMARY KEY,
-            user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            title       TEXT    NOT NULL DEFAULT 'Nueva conversación',
-            messages    TEXT    NOT NULL DEFAULT '[]',
-            created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
-            updated_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+            id         TEXT        PRIMARY KEY,
+            user_id    INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            title      TEXT        NOT NULL DEFAULT 'Nueva conversación',
+            messages   TEXT        NOT NULL DEFAULT '[]',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
 
         CREATE TABLE IF NOT EXISTS sessions (
-            token       TEXT    PRIMARY KEY,
-            user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
-            last_seen   TEXT    NOT NULL DEFAULT (datetime('now'))
+            token      TEXT        PRIMARY KEY,
+            user_id    INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            last_seen  TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
 
         CREATE TABLE IF NOT EXISTS whitelist (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            name          TEXT    DEFAULT NULL,
-            email         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-            password_hash TEXT    DEFAULT NULL,
-            status        TEXT    NOT NULL DEFAULT 'pending',
-            requested_at  TEXT    NOT NULL DEFAULT (datetime('now')),
-            reviewed_at   TEXT    DEFAULT NULL
+            id            SERIAL PRIMARY KEY,
+            name          TEXT        DEFAULT NULL,
+            email         TEXT        NOT NULL UNIQUE,
+            password_hash TEXT        DEFAULT NULL,
+            status        TEXT        NOT NULL DEFAULT 'pending',
+            requested_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            reviewed_at   TIMESTAMPTZ DEFAULT NULL
         );
     ");
 
-    // Migración segura para BBDDs existentes: añadir columnas si aún no existen
-    // SQLite no soporta IF NOT EXISTS en ALTER TABLE, así que capturamos la excepción
-    try { $pdo->exec("ALTER TABLE whitelist ADD COLUMN name TEXT DEFAULT NULL"); } catch (Exception $e) {}
-    try { $pdo->exec("ALTER TABLE users ADD COLUMN api_model TEXT DEFAULT NULL"); } catch (Exception $e) {}
-    try { $pdo->exec("ALTER TABLE whitelist ADD COLUMN password_hash TEXT DEFAULT NULL"); } catch (Exception $e) {}
+    // Migraciones seguras: añadir columnas si aún no existen (PostgreSQL soporta IF NOT EXISTS)
+    $safeCols = [
+        "ALTER TABLE users     ADD COLUMN IF NOT EXISTS api_model     TEXT DEFAULT NULL",
+        "ALTER TABLE whitelist ADD COLUMN IF NOT EXISTS name          TEXT DEFAULT NULL",
+        "ALTER TABLE whitelist ADD COLUMN IF NOT EXISTS password_hash TEXT DEFAULT NULL",
+    ];
+    foreach ($safeCols as $sql) {
+        try { $pdo->exec($sql); } catch (\Exception $e) {}
+    }
 }

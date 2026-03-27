@@ -80,14 +80,14 @@ function resolve_session(): ?array {
     $stmt = $db->prepare("
         SELECT u.id, u.name, u.email, u.avatar, u.api_key, u.api_provider, u.api_model
         FROM sessions s JOIN users u ON u.id = s.user_id
-        WHERE s.token = ? AND datetime(s.last_seen, '+30 days') > datetime('now')
+        WHERE s.token = ? AND s.last_seen + INTERVAL '30 days' > NOW()
     ");
     $stmt->execute([$token]);
     $user = $stmt->fetch();
     if (!$user) return null;
 
     // Refresh last_seen periodically (every hour)
-    $db->prepare("UPDATE sessions SET last_seen = datetime('now') WHERE token = ?")
+    $db->prepare("UPDATE sessions SET last_seen = NOW() WHERE token = ?")
        ->execute([$token]);
     return $user;
 }
