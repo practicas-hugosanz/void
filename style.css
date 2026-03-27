@@ -924,8 +924,18 @@ body::before {
 }
 /* Subtle left accent line on AI responses */
 .msg.ai .msg-bubble {
-  border-left: 2px solid rgba(232,255,71,0.2);
+  position: relative;
   padding-left: 18px;
+}
+.msg.ai .msg-bubble::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.2em;
+  bottom: 0.2em;
+  width: 2px;
+  background: rgba(232,255,71,0.2);
+  border-radius: 2px;
 }
 
 /* User message — compact bubble, right side */
