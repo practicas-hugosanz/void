@@ -622,14 +622,10 @@ const app = {
     const typingId = this.addTypingIndicator();
 
     let responseText = '';
-    if (this.useProxy) {
+    if (this.useProxy || this.apiKey) {
+      // Always route through the server proxy to avoid CORB/CORS issues
+      // when calling AI APIs directly from the browser
       responseText = await this.fetchViaProxyStream(text, attachedFiles, typingId);
-    } else if (this.apiKey && this.apiProvider === 'gemini') {
-      responseText = await this.fetchGeminiAI(text, attachedFiles);
-      this.removeTypingIndicator(typingId);
-    } else if (this.apiKey && this.apiProvider === 'openai') {
-      responseText = await this.fetchOpenAI(text, attachedFiles);
-      this.removeTypingIndicator(typingId);
     } else {
       responseText = await this.fetchMockAI(text);
       this.removeTypingIndicator(typingId);
@@ -1134,47 +1130,51 @@ const app = {
   },
 
   async fetchGeminiAI(text, files = []) {
-    const SYSTEM = 'Eres VOID, una IA minimalista, precisa y profunda. Tu nombre evoca el vacío — como un agujero negro, absorbes las preguntas y devuelves respuestas densas y compactas. Cuando el usuario adjunte archivos, analízalos en detalle y responde sobre su contenido. Usa ocasionalmente el símbolo ✦ al final de respuestas importantes.';
+    // Routed through PHP proxy to avoid CORB browser blocking on direct Google API calls.
+    // The API key is sent via X-Api-Key header so it is used server-side but not stored.
     try {
       const history = this.chatHistory.slice(-10, -1).map(m => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }]
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content,
       }));
 
-      // Build parts for current message — text + images natively, text files injected as text
-      const parts = [];
-      if (text) parts.push({ text });
-
+      // Build current user message content (text + file context)
+      let userContent = text || '';
       files.forEach(f => {
-        if (f.isImage && f.base64) {
-          parts.push({ inlineData: { mimeType: f.mimeType, data: f.base64 } });
-        } else if (f.content) {
-          parts.push({ text: `\n[Contenido de ${f.name}]:\n${f.content.slice(0, 8000)}` });
-        }
+        if (f.content) userContent += `\n[Contenido de ${f.name}]:\n${f.content.slice(0, 8000)}`;
       });
 
-      if (!parts.length) parts.push({ text: '(Sin texto — analiza los archivos adjuntos)' });
+      const messages = [
+        ...history,
+        { role: 'user', content: userContent || '(Sin texto)' },
+      ];
 
-      const body = {
-        system_instruction: { parts: [{ text: SYSTEM }] },
-        contents: [...history, { role: 'user', parts }],
-        generationConfig: { temperature: 0.9, maxOutputTokens: 2048 }
-      };
       const geminiModel = this.apiModel || 'gemini-2.0-flash';
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=` + this.apiKey,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-      );
+
+      const res = await fetch(API.proxy, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': this.apiKey,          // sent to proxy, never stored
+        },
+        body: JSON.stringify({
+          messages,
+          provider: 'gemini',
+          model: geminiModel,
+          stream: false,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        const msg = err.error && err.error.message ? err.error.message : 'HTTP ' + res.status;
-        if (res.status === 429 || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate')) {
+        const msg = data.error || 'HTTP ' + res.status;
+        if (res.status === 429) {
           return '⚠️ Límite de uso alcanzado en Gemini. Espera unos minutos o activa facturación en <a href="https://aistudio.google.com" target="_blank">Google AI Studio</a>. ✦';
         }
         return '⚠️ Error de Gemini: ' + msg + '. Verifica tu API Key. ✦';
       }
-      const data = await res.json();
-      return (data.candidates?.[0]?.content?.parts?.[0]?.text) || 'Sin respuesta del núcleo. ✦';
+      return data.data?.text || 'Sin respuesta del núcleo. ✦';
     } catch (err) {
       console.error(err);
       return '⚠️ Error de conexión con Gemini. Verifica tu API Key en ajustes. ✦';
