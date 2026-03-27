@@ -8,8 +8,8 @@ DirectoryIndex index.php index.html
 
 RewriteEngine On
 
-# 2. FORZAR HTTPS Y CORREGIR PUERTOS (Arregla el error Mixed Content)
-# Si Railway detecta que no es HTTPS, redirige correctamente
+# 2. FORZAR HTTPS Y CORREGIR CABECERAS (Arregla el error Mixed Content)
+# Esto le dice a Apache que confíe en el proxy de Railway para el SSL
 RewriteCond %{HTTP:X-Forwarded-Proto} !https
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
