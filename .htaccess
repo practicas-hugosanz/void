@@ -1,14 +1,16 @@
 Options -Indexes
 RewriteEngine On
 
-# Asegurar que el servidor lea el index.php si se entra a la raíz
-DirectoryIndex index.html
+# 1. Define el índice para que la raíz / no dé error 403
+DirectoryIndex index.php index.html
 
-# Quitar extensión .php
+# 2. Quita .php de la URL SOLO si el usuario no la puso
+# Esto NO afecta a las llamadas internas de script.js que ya usan .php
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}\.php -f
 RewriteRule ^([^\.]+)$ $1.php [NC,L,QSA]
 
+# 3. Protección de archivos (esto es estándar y seguro)
 <FilesMatch "\.(sqlite|db|log)$">
     Require all denied
 </FilesMatch>
