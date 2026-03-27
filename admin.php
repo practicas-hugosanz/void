@@ -9,7 +9,7 @@ cors();
 
 define('ADMIN_SECRET', getenv('VOID_ADMIN_SECRET') ?: 'void-admin-2025-secret');
 
-$secret = $_POST['secret'] ?? ($_COOKIE['void_admin_secret'] ?? '');
+$secret = $_GET['secret'] ?? $_POST['secret'] ?? ($_COOKIE['void_admin_secret'] ?? '');
 $authed = $secret && hash_equals(ADMIN_SECRET, $secret);
 
 if ($authed && !isset($_COOKIE['void_admin_secret'])) {
