@@ -106,7 +106,7 @@ switch ($action) {
         $allowedModels = [
             'gemini'    => ['gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-pro','gemini-1.5-flash'],
             'openai'    => ['gpt-4o','gpt-4o-mini','gpt-4-turbo','gpt-3.5-turbo','o1-mini'],
-            'anthropic' => ['claude-opus-4-5','claude-sonnet-4-5','claude-haiku-4-5','claude-opus-4','claude-sonnet-4'],
+            'anthropic' => ['claude-opus-4-6','claude-sonnet-4-6','claude-haiku-4-5-20251001','claude-opus-4-5','claude-sonnet-4-5','claude-haiku-4-5','claude-opus-4','claude-sonnet-4'],
         ];
         if ($model && !in_array($model, $allowedModels[$provider] ?? [], true))
             json_err('Modelo no permitido para este proveedor');
