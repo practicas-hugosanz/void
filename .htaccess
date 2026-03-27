@@ -1,28 +1,30 @@
 # ----------------------------------------------------------------------
-# Configuración VOID - Railway
+# CONFIGURACIÓN VOID - OPTIMIZADA PARA RAILWAY
 # ----------------------------------------------------------------------
 
-# 1. Evitar que se listen carpetas si no hay un index
+# 1. Seguridad básica y archivos de entrada
 Options -Indexes
-
-# 2. Definir los archivos de entrada por defecto
 DirectoryIndex index.php index.html
 
 RewriteEngine On
 
-# 3. ELIMINAR DOBLES BARRAS (Arregla el error //api/auth.php en la consola) [cite: 1]
-# Esto asegura que las cookies de sesión se envíen correctamente al Index
+# 2. FORZAR HTTPS Y CORREGIR PUERTOS (Arregla el error Mixed Content)
+# Si Railway detecta que no es HTTPS, redirige correctamente
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# 3. ELIMINAR DOBLES BARRAS (Arregla el error //api/auth.php)
+# Limpia la URL para que las cookies de sesión se envíen siempre bien
 RewriteCond %{THE_REQUEST} //
 RewriteRule .* /$0 [R=301,L]
 
-# 4. QUITAR EXTENSIÓN .PHP DE LA URL
+# 4. QUITAR EXTENSIÓN .PHP PARA HUMANOS
 # Permite entrar a /admin en lugar de /admin.php
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}\.php -f
 RewriteRule ^([^\.]+)$ $1.php [NC,L,QSA]
 
 # 5. SEGURIDAD: Bloquear acceso a archivos sensibles
-# Protege tus bases de datos SQLite y logs
 <FilesMatch "\.(sqlite|db|log)$">
     <IfModule mod_authz_core.c>
         Require all denied
