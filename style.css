@@ -1396,11 +1396,12 @@ body::before {
   cursor: pointer; font-size: 0.83rem; font-family: inherit;
   display: flex; align-items: center; gap: 6px;
   transition: all 0.2s;
+  font-weight: 600;
 }
 .provider-btn:hover { border-color: var(--accent); color: var(--text); }
 .provider-btn.active {
   border-color: var(--accent); background: rgba(232,255,71,0.07);
-  color: var(--accent); font-weight: 600;
+  color: var(--accent);
 }
 .provider-icon { font-size: 1rem; }
 
