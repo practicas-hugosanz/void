@@ -6,14 +6,13 @@ RUN apt-get update && apt-get install -y \
     libapache2-mod-php8.2 \
     php8.2-pgsql \
     php8.2-curl \
-    php8.2-pdo \
-    php-pdo \
     curl \
-    && apt-get clean \
-    && phpenmod pdo_pgsql
+    && apt-get clean
+
+# Activar explícitamente pdo y pdo_pgsql para Apache
+RUN phpenmod pdo pdo_pgsql
 
 COPY . /var/www/html/
-RUN echo '<?php echo "PHP OK"; ?>' > /var/www/html/test.php
 
 RUN echo '<VirtualHost *:8080>\n\
     DocumentRoot /var/www/html\n\
