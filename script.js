@@ -415,7 +415,7 @@ const app = {
     this.currentUser.email = newEmail;
     this.updateSidebarUser();
     const welcomeH2 = document.querySelector('#chat-welcome h2');
-    if (welcomeH2) welcomeH2.innerHTML = 'Hola, ' + newName.split(' ')[0] + '<br>\xc2\xbfPor d\xc3\xb3nde empezamos?';
+    if (welcomeH2) welcomeH2.innerHTML = 'Hola, ' + newName.split(' ')[0] + '<br>¿Por dónde empezamos?';
     this.closeProfile();
     this.showToast('Perfil actualizado \u2756');
   },
