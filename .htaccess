@@ -1,32 +1,22 @@
+# 1. Configuración básica
 Options -Indexes
 DirectoryIndex index.php index.html
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # 1. Forzar HTTPS
+    # 2. Forzar HTTPS de forma compatible con Railway
     RewriteCond %{HTTP:X-Forwarded-Proto} !https
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-    # 2. Eliminar dobles barras
-    RewriteCond %{THE_REQUEST} //
-    RewriteRule .* /$0 [R=301,L]
-
-    # 3. NO tocar archivos que ya existen (como api/auth.php)
-    # Esto arregla el error 404 que tienes ahora
-    RewriteCond %{REQUEST_FILENAME} -f [OR]
-    RewriteCond %{REQUEST_FILENAME} -d
-    RewriteRule ^ - [L]
-
-    # 4. Quitar extensión .php para navegación estética (/admin)
+    # 3. Quitar .php de la URL pero permitir que los scripts funcionen
+    # Si el archivo existe con .php, úsalo
+    RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME}\.php -f
     RewriteRule ^([^\.]+)$ $1.php [NC,L,QSA]
 </IfModule>
 
-<IfModule mod_headers.c>
-    Header always set Content-Security-Policy "upgrade-insecure-requests;"
-</IfModule>
-
+# 4. Seguridad para la base de datos
 <FilesMatch "\.(sqlite|db|log)$">
     Require all denied
 </FilesMatch>
