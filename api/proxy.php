@@ -28,6 +28,41 @@ $settings = $row->fetch();
 $apiKey   = $settings['api_key']   ?? '';
 $provider = body()['provider']     ?? ($settings['api_provider'] ?? 'gemini');
 $model    = body()['model']        ?? ($settings['api_model']    ?? '');
+
+// ─── Acción especial: generar título ──────────────────────────────────────────
+if ((body()['action'] ?? '') === 'title') {
+    if (!$apiKey) json_err('No tienes una API Key configurada.', 402);
+    $messages = body()['messages'] ?? [];
+    if (empty($messages)) json_err('Sin mensajes para generar título');
+
+    // Construir un prompt compacto con los primeros intercambios
+    $excerpt = '';
+    foreach (array_slice($messages, 0, 4) as $m) {
+        $role    = $m['role'] === 'assistant' ? 'Asistente' : 'Usuario';
+        $content = is_string($m['content']) ? $m['content'] : '';
+        $excerpt .= "$role: " . mb_substr($content, 0, 200) . "\n";
+    }
+
+    $defaultModels = [
+        'gemini'    => 'gemini-2.0-flash',
+        'openai'    => 'gpt-4o',
+        'anthropic' => 'claude-haiku-4-5',
+    ];
+    if (!$model) $model = $defaultModels[$provider] ?? 'gemini-2.0-flash';
+
+    $titlePrompt = [['role' => 'user', 'content' =>
+        "Genera un título MUY corto (3-5 palabras) para esta conversación. " .
+        "Solo devuelve el título, sin comillas ni puntuación final.\n\n$excerpt"
+    ]];
+
+    if ($provider === 'openai')       $title = call_openai($apiKey, $titlePrompt, $model);
+    elseif ($provider === 'anthropic') $title = call_anthropic($apiKey, $titlePrompt, $model);
+    else                               $title = call_gemini($apiKey, $titlePrompt, $model);
+
+    $title = trim(preg_replace('/^["\'«»]+|["\'»«]+$/', '', trim($title)));
+    if (!$title) $title = 'Conversación';
+    json_ok(['title' => mb_substr($title, 0, 60)]);
+}
 $messages = body()['messages']     ?? [];
 $doStream = body()['stream']       ?? true;
 
