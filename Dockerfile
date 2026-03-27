@@ -4,15 +4,14 @@ RUN apt-get update && apt-get install -y \
     apache2 \
     php8.2 \
     libapache2-mod-php8.2 \
-    php8.2-sqlite3 \
+    php8.2-pgsql \
     php8.2-curl \
     php8.2-pdo \
     curl \
     && apt-get clean
 
 COPY . /var/www/html/
-RUN mkdir -p /var/www/html/data && chmod 777 /var/www/html/data && \
-    echo '<?php echo "PHP OK"; ?>' > /var/www/html/test.php
+RUN echo '<?php echo "PHP OK"; ?>' > /var/www/html/test.php
 
 RUN echo '<VirtualHost *:8080>\n\
     DocumentRoot /var/www/html\n\
