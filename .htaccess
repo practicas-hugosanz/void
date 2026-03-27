@@ -1,9 +1,12 @@
+Options -Indexes
 RewriteEngine On
 
-# Si el archivo existe (como api/auth.php), cárgalo normalmente
-RewriteCond %{REQUEST_FILENAME} -f
-RewriteRule ^ - [L]
-
-# Si el usuario escribe /admin, carga /admin.php internamente
-RewriteCond %{REQUEST_FILENAME}.php -f
+# Remove .php extension from URLs
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.php -f
 RewriteRule ^([^\.]+)$ $1.php [NC,L]
+
+<FilesMatch "\.(sqlite|db|log)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
