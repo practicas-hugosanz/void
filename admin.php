@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $authed) {
     $msgType = 'ok';
 
     if ($action === 'approve' && $email) {
-        $stmt = $db->prepare("UPDATE whitelist SET status = 'approved', reviewed_at = datetime('now') WHERE email = ?");
+        $stmt = $db->prepare("UPDATE whitelist SET status = 'approved', reviewed_at = NOW() WHERE email = ?");
         $stmt->execute([$email]);
         $wl = $db->prepare("SELECT name, password_hash FROM whitelist WHERE email = ?");
         $wl->execute([$email]);
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $authed) {
         }
         $msg = "$email aprobado correctamente";
     } elseif ($action === 'reject' && $email) {
-        $db->prepare("UPDATE whitelist SET status = 'rejected', reviewed_at = datetime('now') WHERE email = ?")
+        $db->prepare("UPDATE whitelist SET status = 'rejected', reviewed_at = NOW() WHERE email = ?")
            ->execute([$email]);
         $msg = "$email rechazado";
         $msgType = 'warn';
