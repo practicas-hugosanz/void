@@ -1,7 +1,14 @@
 Options -Indexes
 RewriteEngine On
 
+# Asegurar que el servidor lea el index.php si se entra a la raíz
+DirectoryIndex index.php
+
+# Quitar extensión .php
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.php -f
+RewriteRule ^([^\.]+)$ $1.php [NC,L,QSA]
+
 <FilesMatch "\.(sqlite|db|log)$">
-    Order Allow,Deny
-    Deny from all
+    Require all denied
 </FilesMatch>
