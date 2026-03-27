@@ -5,7 +5,7 @@
  */
 
 // ── API base path — adjust if your PHP files live in a subdirectory ──────────
-const API_BASE = 'https://void-production-32d7.up.railway.app';
+const API_BASE = 'https://voidai.up.railway.app/';
 
 const API = {
   auth:      API_BASE + '/api/auth.php',
