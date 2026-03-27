@@ -34,6 +34,11 @@ const MODELS = {
     { id: 'gpt-3.5-turbo',           label: 'GPT-3.5 Turbo',          tag: 'económico' },
     { id: 'o1-mini',                  label: 'o1 Mini',                tag: 'razonamiento' },
   ],
+  anthropic: [
+    { id: 'claude-opus-4-6',              label: 'Claude Opus 4.6',    tag: 'potente' },
+    { id: 'claude-sonnet-4-6',            label: 'Claude Sonnet 4.6',  tag: 'equilibrado' },
+    { id: 'claude-haiku-4-5-20251001',    label: 'Claude Haiku 4.5',   tag: 'rápido' },
+  ],
 };
 
 function defaultModel(provider) {
@@ -56,10 +61,11 @@ const app = {
   conversations: [],     // All saved conversations [{id, title, messages, createdAt}]
   activeConvId: null,    // ID of the currently loaded conversation
   apiKey: '',            // Only used client-side for direct-mode (proxy mode stores on server)
-  apiProvider: 'gemini', // 'gemini' | 'openai'
+  apiProvider: 'gemini', // 'gemini' | 'openai' | 'anthropic'
   apiModel: '',          // specific model, e.g. 'gpt-4o', 'gemini-2.0-flash'
   useProxy: true,        // true = API key stored server-side; false = direct from browser
   isTyping: false,
+  streamAbort: null,     // AbortController for active stream
   sidebarCollapsed: false,
 
   async init() {
@@ -547,6 +553,13 @@ const app = {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendMessage(); }
   },
 
+  stopGeneration() {
+    if (this.streamAbort) {
+      this.streamAbort.abort();
+      this.streamAbort = null;
+    }
+  },
+
   async sendMessage() {
     if (this.isTyping) return;
     const input = document.getElementById('chat-input');
@@ -570,7 +583,6 @@ const app = {
       this.conversations.push({ id, title: displayText.slice(0, 40) + (displayText.length > 40 ? '…' : ''), messages: [], createdAt: Date.now() });
     }
 
-    // Store in history — content includes file context for AI, display is clean
     const fileContext = this.buildFileContextFrom(attachedFiles);
     const fullContent = text + fileContext;
     this.chatHistory.push({ role: 'user', content: fullContent });
@@ -579,29 +591,208 @@ const app = {
     this.updateSidebarHistory();
 
     this.isTyping = true;
-    document.getElementById('chat-send').disabled = true;
+    this._setSendButtonStop(true);
     const typingId = this.addTypingIndicator();
 
     let responseText = '';
     if (this.useProxy) {
-      // Server-side proxy: API key stored securely in DB, never exposed to browser
-      responseText = await this.fetchViaProxy(text, attachedFiles);
+      responseText = await this.fetchViaProxyStream(text, attachedFiles, typingId);
     } else if (this.apiKey && this.apiProvider === 'gemini') {
       responseText = await this.fetchGeminiAI(text, attachedFiles);
+      this.removeTypingIndicator(typingId);
     } else if (this.apiKey && this.apiProvider === 'openai') {
       responseText = await this.fetchOpenAI(text, attachedFiles);
+      this.removeTypingIndicator(typingId);
     } else {
       responseText = await this.fetchMockAI(text);
+      this.removeTypingIndicator(typingId);
     }
 
-    this.removeTypingIndicator(typingId);
+    // If streaming, the bubble was already appended incrementally — just finalise
+    if (!this._lastStreamBubble) {
+      this.appendMessageUI('ai', responseText);
+    } else {
+      // Render final markdown in the streaming bubble
+      this._renderMarkdownInBubble(this._lastStreamBubble, responseText);
+      this._lastStreamBubble = null;
+    }
+
     this.chatHistory.push({ role: 'assistant', content: responseText });
-    this.appendMessageUI('ai', responseText);
     await this.syncCurrentConv();
 
     this.isTyping = false;
-    document.getElementById('chat-send').disabled = false;
+    this.streamAbort = null;
+    this._setSendButtonStop(false);
     input.focus();
+  },
+
+  _setSendButtonStop(isStreaming) {
+    const btn = document.getElementById('chat-send');
+    if (!btn) return;
+    if (isStreaming) {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+      btn.title = 'Detener generación';
+      btn.onclick = () => this.stopGeneration();
+      btn.disabled = false;
+    } else {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+      btn.title = 'Enviar';
+      btn.onclick = () => this.sendMessage();
+      btn.disabled = false;
+    }
+  },
+
+  // ── Streaming fetch via proxy ─────────────────────────────────────────────
+  async fetchViaProxyStream(text, files = [], typingId) {
+    const SYSTEM = 'Eres VOID, una IA minimalista, precisa y profunda. Tu nombre evoca el vacío — como un agujero negro, absorbes las preguntas y devuelves respuestas densas y compactas. Cuando el usuario adjunte archivos, analízalos en detalle y responde sobre su contenido. Usa ocasionalmente el símbolo ✦ al final de respuestas importantes.';
+
+    const history = this.chatHistory.slice(-10).map(m => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content,
+    }));
+
+    const lastMsg = history[history.length - 1];
+    if (lastMsg && files && files.length) {
+      let extra = '\n\n[ARCHIVOS ADJUNTOS]\n';
+      files.forEach(f => {
+        if (!f.isImage) extra += `\n• ${f.name}:\n\`\`\`\n${(f.content || '').slice(0, 6000)}\n\`\`\`\n`;
+        else extra += `\n• Imagen adjunta: ${f.name}\n`;
+      });
+      lastMsg.content += extra;
+    }
+
+    const messages = [{ role: 'system', content: SYSTEM }, ...history];
+
+    // Create the streaming AI bubble immediately
+    this.removeTypingIndicator(typingId);
+    const bubble = this._createStreamingBubble();
+    this._lastStreamBubble = bubble;
+
+    const controller = new AbortController();
+    this.streamAbort = controller;
+
+    let fullText = '';
+
+    try {
+      const res = await fetch(API.proxy, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, provider: this.apiProvider, model: this.apiModel || defaultModel(this.apiProvider), stream: true }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        this._renderMarkdownInBubble(bubble, '⚠️ ' + (err.error || 'Error del servidor') + ' ✦');
+        return '⚠️ ' + (err.error || 'Error del servidor') + ' ✦';
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+
+        const lines = buf.split('\n');
+        buf = lines.pop(); // keep incomplete line
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data: ')) continue;
+          const payload = trimmed.slice(6);
+          if (payload === '[DONE]') break;
+          try {
+            const obj = JSON.parse(payload);
+            if (obj.error) { this._renderMarkdownInBubble(bubble, '⚠️ ' + obj.error); return '⚠️ ' + obj.error; }
+            if (obj.chunk) {
+              fullText += obj.chunk;
+              // Show raw text while streaming (fast), render markdown at the end
+              bubble.textContent = fullText;
+              this.scrollToBottom();
+            }
+          } catch (_) {}
+        }
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        fullText += '\n\n*[Generación detenida]*';
+      } else {
+        fullText = '⚠️ Error de conexión con el servidor. ✦';
+      }
+    }
+
+    return fullText;
+  },
+
+  _createStreamingBubble() {
+    const inner = document.getElementById('chat-messages-inner');
+    const msg = document.createElement('div');
+    msg.className = 'msg ai';
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar ai';
+    avatar.textContent = 'V';
+    const content = document.createElement('div');
+    content.className = 'msg-content';
+    const name = document.createElement('div');
+    name.className = 'msg-name';
+    name.textContent = 'VOID';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble ai streaming-bubble';
+    content.appendChild(name);
+    content.appendChild(bubble);
+    msg.appendChild(avatar);
+    msg.appendChild(content);
+    inner.appendChild(msg);
+    this.scrollToBottom();
+    return bubble;
+  },
+
+  // ── Markdown rendering ────────────────────────────────────────────────────
+  _renderMarkdownInBubble(bubble, text) {
+    if (typeof marked === 'undefined') {
+      bubble.innerHTML = this.escapeHtml(text).replace(/\n/g, '<br>');
+      return;
+    }
+    bubble.classList.remove('streaming-bubble');
+
+    // Configure marked
+    marked.setOptions({ breaks: true, gfm: true });
+
+    const renderer = new marked.Renderer();
+    // Code blocks with syntax highlight + copy button
+    renderer.code = (code, lang) => {
+      const language = (lang || '').split(/[^a-zA-Z0-9]/, 1)[0] || 'plaintext';
+      let highlighted = code;
+      if (typeof hljs !== 'undefined') {
+        try {
+          highlighted = hljs.highlight(code, { language, ignoreIllegals: true }).value;
+        } catch (_) {
+          highlighted = hljs.highlightAuto(code).value;
+        }
+      } else {
+        highlighted = this.escapeHtml(code);
+      }
+      const id = 'cb-' + Math.random().toString(36).slice(2, 8);
+      return `<div class="code-block"><div class="code-header"><span class="code-lang">${this.escapeHtml(language)}</span><button class="code-copy" onclick="app.copyCode('${id}')" title="Copiar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar</button></div><pre><code id="${id}" class="hljs language-${this.escapeHtml(language)}">${highlighted}</code></pre></div>`;
+    };
+    marked.use({ renderer });
+
+    bubble.innerHTML = marked.parse(text);
+    this.scrollToBottom();
+  },
+
+  copyCode(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    navigator.clipboard.writeText(el.textContent).then(() => {
+      this.showToast('✓ Copiado');
+    }).catch(() => {
+      this.showToast('No se pudo copiar');
+    });
   },
 
   appendMessageUI(role, text) {
@@ -610,10 +801,20 @@ const app = {
     const uiRole = isAI ? 'ai' : 'user';
     const msg = document.createElement('div');
     msg.className = 'msg ' + uiRole;
-    const avatar = isAI ? 'V' : (this.currentUser ? this.currentUser.name.slice(0, 1).toUpperCase() : 'U');
+    const avatarStr = isAI ? 'V' : (this.currentUser ? this.currentUser.name.slice(0, 1).toUpperCase() : 'U');
     const name = isAI ? 'VOID' : 'Tú';
-    const safeText = isAI ? text.replace(/\n/g, '<br>') : this.escapeHtml(text).replace(/\n/g, '<br>');
-    msg.innerHTML = '<div class="msg-avatar ' + uiRole + '">' + avatar + '</div><div class="msg-content"><div class="msg-name">' + name + '</div><div class="msg-bubble ' + uiRole + '">' + safeText + '</div></div>';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble ' + uiRole;
+
+    if (isAI) {
+      this._renderMarkdownInBubble(bubble, text);
+    } else {
+      bubble.innerHTML = this.escapeHtml(text).replace(/\n/g, '<br>');
+    }
+
+    msg.innerHTML = '<div class="msg-avatar ' + uiRole + '">' + avatarStr + '</div><div class="msg-content"><div class="msg-name">' + name + '</div></div>';
+    msg.querySelector('.msg-content').appendChild(bubble);
     inner.appendChild(msg);
     this.scrollToBottom();
   },
@@ -801,7 +1002,7 @@ const app = {
     const uiRole = isAI ? 'ai' : 'user';
     const msg = document.createElement('div');
     msg.className = 'msg ' + uiRole;
-    const avatar = isAI ? 'V' : (this.currentUser ? this.currentUser.name.slice(0, 1).toUpperCase() : 'U');
+    const avatarStr = isAI ? 'V' : (this.currentUser ? this.currentUser.name.slice(0, 1).toUpperCase() : 'U');
     const name = isAI ? 'VOID' : 'Tú';
 
     let attachHtml = '';
@@ -811,8 +1012,18 @@ const app = {
       ).join('') + '</div>';
     }
 
-    const safeText = isAI ? text.replace(/\n/g, '<br>') : this.escapeHtml(text).replace(/\n/g, '<br>');
-    msg.innerHTML = `<div class="msg-avatar ${uiRole}">${avatar}</div><div class="msg-content"><div class="msg-name">${name}</div><div class="msg-bubble ${uiRole}">${attachHtml}${safeText}</div></div>`;
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble ' + uiRole;
+    if (attachHtml) bubble.innerHTML = attachHtml;
+
+    if (isAI) {
+      this._renderMarkdownInBubble(bubble, text);
+    } else {
+      bubble.innerHTML += this.escapeHtml(text).replace(/\n/g, '<br>');
+    }
+
+    msg.innerHTML = `<div class="msg-avatar ${uiRole}">${avatarStr}</div><div class="msg-content"><div class="msg-name">${name}</div></div>`;
+    msg.querySelector('.msg-content').appendChild(bubble);
     inner.appendChild(msg);
     this.scrollToBottom();
   },
@@ -1018,6 +1229,10 @@ const app = {
       label.textContent = 'Google Gemini API Key';
       input.placeholder = 'AIza...';
       hint.innerHTML = 'Obtén tu clave en <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a>';
+    } else if (provider === 'anthropic') {
+      label.textContent = 'Anthropic API Key';
+      input.placeholder = 'sk-ant-...';
+      hint.innerHTML = 'Obtén tu clave en <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic Console</a>';
     } else {
       label.textContent = 'OpenAI API Key';
       input.placeholder = 'sk-...';
@@ -1042,6 +1257,10 @@ const app = {
       label.textContent = 'Google Gemini API Key';
       input.placeholder = 'AIza...';
       hint.innerHTML = 'Obtén tu clave en <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a>';
+    } else if (this.apiProvider === 'anthropic') {
+      label.textContent = 'Anthropic API Key';
+      input.placeholder = 'sk-ant-...';
+      hint.innerHTML = 'Obtén tu clave en <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic Console</a>';
     } else {
       label.textContent = 'OpenAI API Key';
       input.placeholder = 'sk-...';
