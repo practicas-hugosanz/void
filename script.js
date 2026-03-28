@@ -700,14 +700,20 @@ const app = {
       content: m.content,
     }));
 
+    // Build multimodal content for the last (current) user message if there are files
     const lastMsg = history[history.length - 1];
     if (lastMsg && files && files.length) {
-      let extra = '\n\n[ARCHIVOS ADJUNTOS]\n';
+      const content = [];
+      if (text) content.push({ type: 'text', text });
       files.forEach(f => {
-        if (!f.isImage) extra += `\n• ${f.name}:\n\`\`\`\n${(f.content || '').slice(0, 6000)}\n\`\`\`\n`;
-        else extra += `\n• Imagen adjunta: ${f.name}\n`;
+        if (f.isImage && f.base64) {
+          content.push({ type: 'image_url', image_url: { url: `data:${f.mimeType};base64,${f.base64}`, detail: 'auto' } });
+        } else if (f.content) {
+          content.push({ type: 'text', text: `\n[Contenido de ${f.name}]:\n${f.content.slice(0, 6000)}` });
+        }
       });
-      lastMsg.content += extra;
+      if (!content.length) content.push({ type: 'text', text: text || '(Analiza los archivos adjuntos)' });
+      lastMsg.content = content;
     }
 
     const messages = [{ role: 'system', content: SYSTEM }, ...history];
