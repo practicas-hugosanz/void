@@ -120,6 +120,9 @@ if ($doStream) {
     header('Content-Type: text/event-stream');
     header('Cache-Control: no-cache');
     header('X-Accel-Buffering: no');
+    header('X-VOID-Provider: ' . $provider);
+    header('X-VOID-Model: ' . $model);
+    header('X-VOID-HasKey: ' . ($apiKey ? 'yes' : 'NO'));
 
     if ($provider === 'openai')        stream_openai($apiKey, $messages, $model);
     elseif ($provider === 'anthropic') stream_anthropic($apiKey, $messages, $model);
@@ -145,27 +148,43 @@ function sse_error(string $msg): void  { echo 'data: '.json_encode(['error'=>$ms
 // OpenAI
 // ═══════════════════════════════════════════════════════════════════════════════
 function stream_openai(string $key, array $messages, string $model): void {
+    $sentDone = false; $sentChunk = false; $rawBuf = '';
     $ch = curl_init('https://api.openai.com/v1/chat/completions');
     curl_setopt_array($ch, [
         CURLOPT_POST          => true,
         CURLOPT_POSTFIELDS    => json_encode(['model'=>$model,'messages'=>$messages,'stream'=>true]),
         CURLOPT_HTTPHEADER    => ['Content-Type: application/json','Authorization: Bearer '.$key],
         CURLOPT_TIMEOUT       => 120,
-        CURLOPT_WRITEFUNCTION => function($ch, $data) {
+        CURLOPT_WRITEFUNCTION => function($ch, $data) use (&$sentDone, &$sentChunk, &$rawBuf) {
+            $rawBuf .= $data;
             foreach (explode("\n", $data) as $line) {
                 $line = trim($line);
                 if (!str_starts_with($line, 'data: ')) continue;
                 $json = substr($line, 6);
-                if ($json === '[DONE]') { sse_done(); return strlen($data); }
+                if ($json === '[DONE]') { sse_done(); $sentDone = true; return strlen($data); }
                 $obj = json_decode($json, true);
+                if (!empty($obj['error'])) {
+                    $msg = $obj['error']['message'] ?? 'Error de OpenAI';
+                    sse_error($msg); return strlen($data);
+                }
                 $chunk = $obj['choices'][0]['delta']['content'] ?? '';
-                if ($chunk !== '') sse_chunk($chunk);
+                if ($chunk !== '') { sse_chunk($chunk); $sentChunk = true; }
             }
             return strlen($data);
         },
     ]);
-    $ok = curl_exec($ch); $err = curl_error($ch); curl_close($ch);
-    if (!$ok || $err) sse_error('Error de red con OpenAI: '.($err?:'sin respuesta'));
+    $ok = curl_exec($ch); $err = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if (!$ok || $err) { sse_error('Error de red con OpenAI: '.($err?:'sin respuesta')); return; }
+    if ($httpCode >= 400 && !$sentChunk) {
+        $errBody = json_decode($rawBuf, true);
+        $msg = $errBody['error']['message'] ?? 'Error HTTP '.$httpCode.' de OpenAI';
+        if ($httpCode === 401) $msg = 'API Key de OpenAI inválida.';
+        if ($httpCode === 429) $msg = 'Cuota de OpenAI superada.';
+        sse_error($msg); return;
+    }
+    if (!$sentDone) sse_done();
 }
 
 function call_openai(string $key, array $messages, string $model = 'gpt-4o'): string {
@@ -221,8 +240,15 @@ function stream_anthropic(string $key, array $messages, string $model): void {
             return strlen($data);
         },
     ]);
-    $ok = curl_exec($ch); $err = curl_error($ch); curl_close($ch);
+    $ok = curl_exec($ch); $err = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
     if (!$ok || $err) sse_error('Error de red con Anthropic: '.($err?:'sin respuesta'));
+    elseif ($httpCode >= 400) {
+        if ($httpCode === 401) sse_error('API Key de Anthropic inválida.');
+        elseif ($httpCode === 429) sse_error('Límite de uso de Anthropic superado.');
+        else sse_error('Error HTTP '.$httpCode.' de Anthropic.');
+    }
 }
 
 function call_anthropic(string $key, array $messages, string $model = 'claude-sonnet-4-6'): string {
