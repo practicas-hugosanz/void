@@ -19,9 +19,9 @@ const API = {
 // ─── Available models per provider ───────────────────────────────────────────
 const MODELS = {
   gemini: [
-    { id: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash',      tag: 'recomendado' },
-    { id: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash',      tag: 'nuevo' },
+    { id: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash',      tag: 'recomendado' },
     { id: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro',        tag: 'potente' },
+    { id: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash',      tag: '' },
     { id: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite', tag: 'ligero' },
   ],
   openai: [

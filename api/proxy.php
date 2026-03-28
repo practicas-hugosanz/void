@@ -277,8 +277,7 @@ function call_anthropic(string $key, array $messages, string $model = 'claude-so
 // ═══════════════════════════════════════════════════════════════════════════════
 // Lista de modelos Gemini en orden de prioridad para fallback automático
 function gemini_fallback_models(string $preferredModel): array {
-    $all = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
-    // Poner el modelo preferido primero, luego el resto en orden
+    $all = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
     $ordered = [$preferredModel];
     foreach ($all as $m) {
         if ($m !== $preferredModel) $ordered[] = $m;
