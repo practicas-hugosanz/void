@@ -830,6 +830,7 @@ const app = {
 
     const parsed = marked.parse(text.trim());
     bubble.innerHTML = parsed.replace(/<p>\s*<\/p>\s*$/i, '');
+    bubble.style.whiteSpace = 'normal';
     this.scrollToBottom();
   },
 
