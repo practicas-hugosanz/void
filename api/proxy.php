@@ -81,7 +81,7 @@ if ((body()['action'] ?? '') === 'title') {
         $excerpt .= "$role: " . mb_substr($content, 0, 200) . "\n";
     }
     $dm = ['gemini'=>'gemini-2.5-flash','openai'=>'gpt-4o','anthropic'=>'claude-haiku-4-5'];
-    if (!$model) $model = $dm[$provider] ?? 'gemini-2.0-flash';
+    if (!$model) $model = $dm[$provider] ?? 'gemini-2.5-flash';
 
     $titlePrompt = [['role'=>'user','content'=>
         "Genera un título MUY corto (3-5 palabras) para esta conversación. ".
@@ -104,7 +104,7 @@ if (!$apiKey)         json_err('El servicio no está configurado. Contacta al ad
 if (empty($messages)) json_err('Sin mensajes', 400);
 
 $dm = ['gemini'=>'gemini-2.5-flash','openai'=>'gpt-4o','anthropic'=>'claude-sonnet-4-6-20250514'];
-if (!$model) $model = $dm[$provider] ?? 'gemini-2.0-flash';
+if (!$model) $model = $dm[$provider] ?? 'gemini-2.5-flash';
 
 if ($doStream) {
     // Verificar key antes de iniciar SSE (una vez iniciado SSE no podemos devolver JSON de error)
@@ -275,7 +275,19 @@ function call_anthropic(string $key, array $messages, string $model = 'claude-so
 // ═══════════════════════════════════════════════════════════════════════════════
 // Gemini
 // ═══════════════════════════════════════════════════════════════════════════════
-function stream_gemini(string $key, array $messages, string $model): void {
+// Lista de modelos Gemini en orden de prioridad para fallback automático
+function gemini_fallback_models(string $preferredModel): array {
+    $all = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    // Poner el modelo preferido primero, luego el resto en orden
+    $ordered = [$preferredModel];
+    foreach ($all as $m) {
+        if ($m !== $preferredModel) $ordered[] = $m;
+    }
+    return $ordered;
+}
+
+// Construye los 'contents' y 'systemInstruction' a partir de los mensajes
+function gemini_build_contents(array $messages): array {
     $contents = []; $systemInstruction = null;
     foreach ($messages as $msg) {
         $role = $msg['role']; $rawContent = $msg['content'];
@@ -299,95 +311,120 @@ function stream_gemini(string $key, array $messages, string $model): void {
         if ($role === 'system') { $systemInstruction = ['parts'=>$parts]; continue; }
         $contents[] = ['role'=>$role==='assistant'?'model':'user','parts'=>$parts];
     }
-    $body = ['contents'=>$contents];
+    return ['contents' => $contents, 'systemInstruction' => $systemInstruction];
+}
+
+function stream_gemini(string $key, array $messages, string $model): void {
+    $built = gemini_build_contents($messages);
+    $contents          = $built['contents'];
+    $systemInstruction = $built['systemInstruction'];
+
+    $body = ['contents' => $contents];
     if ($systemInstruction) $body['systemInstruction'] = $systemInstruction;
 
-    $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
-         . urlencode($model).':streamGenerateContent?alt=sse&key='.urlencode($key);
-    $lineBuf = ''; $rawBuf = ''; $sentChunk = false;
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_POST          => true,
-        CURLOPT_POSTFIELDS    => json_encode($body),
-        CURLOPT_HTTPHEADER    => ['Content-Type: application/json'],
-        CURLOPT_TIMEOUT       => 120,
-        CURLOPT_WRITEFUNCTION => function($ch, $data) use (&$lineBuf, &$rawBuf, &$sentChunk) {
-            $rawBuf  .= $data;
-            $lineBuf .= $data;
-            while (($pos = strpos($lineBuf, "\n")) !== false) {
-                $line    = trim(substr($lineBuf, 0, $pos));
-                $lineBuf = substr($lineBuf, $pos + 1);
-                if (!str_starts_with($line, 'data: ')) {
-                    // Errores de Gemini pueden venir como JSON plano sin prefijo data:
-                    if (str_starts_with($line, '{')) {
-                        $plain = json_decode($line, true);
-                        if (!empty($plain['error'])) {
-                            $msg  = $plain['error']['message'] ?? 'Error de Gemini';
-                            $code = (int)($plain['error']['code'] ?? 0);
-                            if ($code === 400) $msg = 'Modelo no disponible o solicitud inválida.';
-                            elseif ($code === 401 || $code === 403) $msg = 'API Key de Gemini inválida o sin permisos.';
-                            elseif ($code === 429) $msg = 'Límite de Gemini superado. Espera un momento.';
-                            sse_error($msg);
+    $modelsToTry = gemini_fallback_models($model);
+
+    foreach ($modelsToTry as $tryModel) {
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+             . urlencode($tryModel).':streamGenerateContent?alt=sse&key='.urlencode($key);
+        $lineBuf = ''; $rawBuf = ''; $sentChunk = false; $hit429 = false;
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST          => true,
+            CURLOPT_POSTFIELDS    => json_encode($body),
+            CURLOPT_HTTPHEADER    => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT       => 120,
+            CURLOPT_WRITEFUNCTION => function($ch, $data) use (&$lineBuf, &$rawBuf, &$sentChunk, &$hit429) {
+                $rawBuf  .= $data;
+                $lineBuf .= $data;
+                while (($pos = strpos($lineBuf, "\n")) !== false) {
+                    $line    = trim(substr($lineBuf, 0, $pos));
+                    $lineBuf = substr($lineBuf, $pos + 1);
+                    if (!str_starts_with($line, 'data: ')) {
+                        if (str_starts_with($line, '{')) {
+                            $plain = json_decode($line, true);
+                            if (!empty($plain['error'])) {
+                                $code = (int)($plain['error']['code'] ?? 0);
+                                if ($code === 429) { $hit429 = true; return strlen($data); }
+                                if ($code === 400) { sse_error('Modelo no disponible o solicitud inválida.'); return strlen($data); }
+                                if ($code === 401 || $code === 403) { sse_error('API Key de Gemini inválida o sin permisos.'); return strlen($data); }
+                                sse_error($plain['error']['message'] ?? 'Error de Gemini');
+                            }
                         }
+                        continue;
                     }
-                    continue;
+                    $obj = json_decode(substr($line, 6), true);
+                    if (!empty($obj['error'])) {
+                        $code = (int)($obj['error']['code'] ?? 0);
+                        if ($code === 429) { $hit429 = true; return strlen($data); }
+                        if ($code === 401 || $code === 403) { sse_error('API Key de Gemini inválida o sin permisos.'); return strlen($data); }
+                        sse_error($obj['error']['message'] ?? 'Error de Gemini'); return strlen($data);
+                    }
+                    $chunk = $obj['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                    if ($chunk !== '') { sse_chunk($chunk); $sentChunk = true; }
                 }
-                $obj = json_decode(substr($line, 6), true);
-                if (!empty($obj['error'])) {
-                    $msg  = $obj['error']['message'] ?? 'Error de Gemini';
-                    $code = (int)($obj['error']['code'] ?? 0);
-                    if ($code === 401 || $code === 403) $msg = 'API Key de Gemini inválida o sin permisos.';
-                    elseif ($code === 429) $msg = 'Límite de Gemini superado. Espera un momento.';
-                    sse_error($msg); return strlen($data);
-                }
-                $chunk = $obj['candidates'][0]['content']['parts'][0]['text'] ?? '';
-                if ($chunk !== '') { sse_chunk($chunk); $sentChunk = true; }
-            }
-            return strlen($data);
-        },
-    ]);
-    $ok = curl_exec($ch); $err = curl_error($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    if (!$ok || $err) { sse_error('Error de red con Gemini: '.($err?:'sin respuesta')); return; }
-    if ($httpCode >= 400 && !$sentChunk) {
-        $errBody = json_decode($rawBuf, true);
-        $msg = $errBody['error']['message'] ?? 'Error HTTP '.$httpCode.' de Gemini';
-        if ($httpCode === 400) $msg = 'Modelo no disponible o solicitud inválida.';
-        elseif ($httpCode === 401 || $httpCode === 403) $msg = 'API Key de Gemini inválida o sin permisos.';
-        elseif ($httpCode === 429) $msg = 'Límite de Gemini superado. Espera un momento.';
-        sse_error($msg); return;
+                return strlen($data);
+            },
+        ]);
+        $ok = curl_exec($ch); $err = curl_error($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if (!$ok || $err) { sse_error('Error de red con Gemini: '.($err?:'sin respuesta')); return; }
+
+        // Si fue 429 (en header HTTP o detectado en stream), probar siguiente modelo
+        if ($httpCode === 429 || $hit429) continue;
+
+        if ($httpCode >= 400 && !$sentChunk) {
+            $errBody = json_decode($rawBuf, true);
+            if ($httpCode === 400) { sse_error('Modelo no disponible o solicitud inválida.'); return; }
+            if ($httpCode === 401 || $httpCode === 403) { sse_error('API Key de Gemini inválida o sin permisos.'); return; }
+            sse_error($errBody['error']['message'] ?? 'Error HTTP '.$httpCode.' de Gemini'); return;
+        }
+
+        // Éxito
+        sse_done(); return;
     }
-    sse_done();
+
+    // Todos los modelos agotaron su cuota
+    sse_error('Límite diario de Gemini alcanzado en todos los modelos. Inténtalo mañana.');
 }
 
 function call_gemini(string $key, array $messages, string $model = 'gemini-2.5-flash'): string {
-    $contents = []; $sys = null;
-    foreach ($messages as $msg) {
-        $role = $msg['role']; $text = is_string($msg['content']) ? $msg['content'] : '';
-        if ($role === 'system') { $sys = ['parts'=>[['text'=>$text]]]; continue; }
-        $contents[] = ['role'=>$role==='assistant'?'model':'user','parts'=>[['text'=>$text]]];
+    $modelsToTry = gemini_fallback_models($model);
+
+    foreach ($modelsToTry as $tryModel) {
+        $contents = []; $sys = null;
+        foreach ($messages as $msg) {
+            $role = $msg['role']; $text = is_string($msg['content']) ? $msg['content'] : '';
+            if ($role === 'system') { $sys = ['parts'=>[['text'=>$text]]]; continue; }
+            $contents[] = ['role'=>$role==='assistant'?'model':'user','parts'=>[['text'=>$text]]];
+        }
+        $body = ['contents'=>$contents];
+        if ($sys) $body['systemInstruction'] = $sys;
+
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+             . urlencode($tryModel).':generateContent?key='.urlencode($key);
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS     => json_encode($body),
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT        => 60,
+        ]);
+        $raw = curl_exec($ch); $err = curl_error($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+        if ($err || !$raw) json_err('Error de red con Gemini: '.($err?:''), 502);
+        $res = json_decode($raw, true);
+        if (!empty($res['error'])) {
+            $st = (int)($res['error']['code'] ?? $code);
+            if ($st === 429) continue; // Intentar siguiente modelo
+            if ($st === 400) json_err('Gemini: key inválida o solicitud incorrecta.', 400);
+            if ($st === 403) json_err('Gemini: API Key sin permisos.', 403);
+            json_err('Gemini: '.($res['error']['message']??'error desconocido'), 502);
+        }
+        return $res['candidates'][0]['content']['parts'][0]['text'] ?? '';
     }
-    $body = ['contents'=>$contents];
-    if ($sys) $body['systemInstruction'] = $sys;
-    $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
-         . urlencode($model).':generateContent?key='.urlencode($key);
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS     => json_encode($body),
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-        CURLOPT_TIMEOUT        => 60,
-    ]);
-    $raw = curl_exec($ch); $err = curl_error($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
-    if ($err || !$raw) json_err('Error de red con Gemini: '.($err?:''), 502);
-    $res = json_decode($raw, true);
-    if (!empty($res['error'])) {
-        $st = $res['error']['code'] ?? $code;
-        if ($st === 400) json_err('Gemini: key inválida o solicitud incorrecta.', 400);
-        if ($st === 403) json_err('Gemini: API Key sin permisos.', 403);
-        if ($st === 429) json_err('Gemini: límite de peticiones superado.', 429);
-        json_err('Gemini: '.($res['error']['message']??'error desconocido'), 502);
-    }
-    return $res['candidates'][0]['content']['parts'][0]['text'] ?? '';
+
+    json_err('Límite diario de Gemini alcanzado en todos los modelos. Inténtalo mañana.', 429);
 }
