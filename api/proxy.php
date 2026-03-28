@@ -2,8 +2,11 @@
 /**
  * VOID API — /api/proxy.php
  * Funciona con o sin base de datos (DATABASE_URL).
- * Sin BD: acepta API key desde el header X-Api-Key.
+ * Sin BD/sesión: acepta API key desde el header X-Api-Key.
  */
+
+// ─── Cargar helpers (json_ok, json_err, body, cors, resolve_session…) ────────
+require_once __DIR__ . '/../includes/auth.php';
 
 // ─── Capturar errores fatales y devolverlos como JSON ────────────────────────
 set_exception_handler(function(Throwable $e) {
@@ -15,42 +18,18 @@ set_exception_handler(function(Throwable $e) {
     exit;
 });
 
-// ─── CORS ────────────────────────────────────────────────────────────────────
-header('Access-Control-Allow-Origin: ' . ($_SERVER['HTTP_ORIGIN'] ?? '*'));
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Api-Key');
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-function json_ok(mixed $data = null): never {
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['ok' => true, 'data' => $data]);
-    exit;
-}
-function json_err(string $message, int $status = 400): never {
-    http_response_code($status);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['ok' => false, 'error' => $message]);
-    exit;
-}
-function body(): array {
-    static $parsed = null;
-    if ($parsed !== null) return $parsed;
-    $parsed = json_decode(file_get_contents('php://input') ?: '{}', true) ?: [];
-    return $parsed;
-}
+cors();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') json_err('Método no permitido', 405);
 
 // ─── Obtener API key ──────────────────────────────────────────────────────────
+// Prioridad: 1) BD del usuario autenticado  2) Header X-Api-Key del cliente
 $apiKey     = '';
 $dbProvider = 'gemini';
 $dbModel    = '';
 
 if (getenv('DATABASE_URL')) {
     try {
-        require_once __DIR__ . '/../includes/auth.php';
         $dbUser = resolve_session();
         if ($dbUser) {
             $db  = get_db();
@@ -62,10 +41,11 @@ if (getenv('DATABASE_URL')) {
             $dbModel    = $s['api_model']    ?? '';
         }
     } catch (Throwable $e) {
-        // BD no disponible — modo sin sesión
+        // BD no disponible — continuar sin ella
     }
 }
 
+// Sin BD o sin sesión: tomar key del header X-Api-Key
 if (!$apiKey) {
     $apiKey = trim($_SERVER['HTTP_X_API_KEY'] ?? '');
 }
