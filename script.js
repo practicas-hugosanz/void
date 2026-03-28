@@ -19,22 +19,22 @@ const API = {
 // ─── Available models per provider ───────────────────────────────────────────
 const MODELS = {
   gemini: [
-    { id: 'gemini-2.0-flash',               label: 'Gemini 2.0 Flash',       tag: 'recomendado' },
-    { id: 'gemini-2.0-flash-lite',          label: 'Gemini 2.0 Flash Lite',  tag: 'ligero' },
-    { id: 'gemini-1.5-pro',                 label: 'Gemini 1.5 Pro',         tag: 'potente' },
-    { id: 'gemini-1.5-flash',               label: 'Gemini 1.5 Flash',       tag: 'equilibrado' },
+    { id: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash',      tag: 'recomendado' },
+    { id: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash',      tag: 'nuevo' },
+    { id: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro',        tag: 'potente' },
+    { id: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite', tag: 'ligero' },
   ],
   openai: [
-    { id: 'gpt-4o',                   label: 'GPT-4o',                 tag: 'flagship' },
-    { id: 'gpt-4o-mini',              label: 'GPT-4o Mini',            tag: 'rápido' },
-    { id: 'gpt-4-turbo',              label: 'GPT-4 Turbo',            tag: 'potente' },
-    { id: 'gpt-3.5-turbo',           label: 'GPT-3.5 Turbo',          tag: 'económico' },
-    { id: 'o1-mini',                  label: 'o1 Mini',                tag: 'razonamiento' },
+    { id: 'gpt-4o',       label: 'GPT-4o',       tag: 'flagship' },
+    { id: 'gpt-4o-mini',  label: 'GPT-4o Mini',  tag: 'rápido' },
+    { id: 'gpt-4-turbo',  label: 'GPT-4 Turbo',  tag: 'potente' },
+    { id: 'gpt-3.5-turbo',label: 'GPT-3.5 Turbo',tag: 'económico' },
+    { id: 'o1-mini',      label: 'o1 Mini',       tag: 'razonamiento' },
   ],
   anthropic: [
-    { id: 'claude-opus-4-6',              label: 'Claude Opus 4.6',    tag: 'potente' },
-    { id: 'claude-sonnet-4-6',            label: 'Claude Sonnet 4.6',  tag: 'equilibrado' },
-    { id: 'claude-haiku-4-5-20251001',    label: 'Claude Haiku 4.5',   tag: 'rápido' },
+    { id: 'claude-opus-4-6',           label: 'Claude Opus 4.6',    tag: 'potente' },
+    { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6',  tag: 'equilibrado' },
+    { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5',   tag: 'rápido' },
   ],
 };
 
@@ -103,7 +103,20 @@ const app = {
 
     this.currentUser = res.data;
     this.apiProvider = res.data.api_provider || lsProvider || 'gemini';
-    this.apiModel = res.data.api_model || lsModel || defaultModel(this.apiProvider);
+    const dbModel = res.data.api_model || '';
+    const validDbModels = (MODELS[this.apiProvider] || []).map(m => m.id);
+    // Si el modelo de BD ya no es válido, resetear al por defecto y guardar en BD
+    if (dbModel && !validDbModels.includes(dbModel)) {
+      this.apiModel = defaultModel(this.apiProvider);
+      // Guardar silenciosamente el modelo válido en BD
+      apiFetch(API.user + '?action=settings', {
+        method: 'PUT',
+        body: JSON.stringify({ api_provider: this.apiProvider, api_model: this.apiModel }),
+      }).catch(() => {});
+      localStorage.setItem('void_model', this.apiModel);
+    } else {
+      this.apiModel = dbModel || this.apiModel || defaultModel(this.apiProvider);
+    }
     this.useProxy = true; // el servidor gestiona la API key
 
     // Sidebar state stored locally (cosmetic preference)
