@@ -44,9 +44,12 @@ function defaultModel(provider) {
 }
 
 async function apiFetch(url, options = {}) {
+  // Inyectar X-Api-Key en llamadas al proxy para que funcione sin sesión de BD
+  const extraHeaders = {};
+  if (url === API.proxy && app.apiKey) extraHeaders['X-Api-Key'] = app.apiKey;
   const res = await fetch(url, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...extraHeaders, ...(options.headers || {}) },
     ...options,
   });
   const json = await res.json().catch(() => ({ ok: false, error: 'Respuesta inválida del servidor' }));

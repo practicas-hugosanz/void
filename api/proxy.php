@@ -36,9 +36,9 @@ if (getenv('DATABASE_URL')) {
             $row = $db->prepare("SELECT api_key, api_provider, api_model FROM users WHERE id = ?");
             $row->execute([$dbUser['id']]);
             $s = $row->fetch() ?: [];
-            $apiKey     = $s['api_key']      ?? '';
-            $dbProvider = $s['api_provider'] ?? 'gemini';
-            $dbModel    = $s['api_model']    ?? '';
+            $apiKey     = trim($s['api_key']      ?? '');
+            $dbProvider = trim($s['api_provider'] ?? 'gemini') ?: 'gemini';
+            $dbModel    = trim($s['api_model']    ?? '');
         }
     } catch (Throwable $e) {
         // BD no disponible — continuar sin ella
@@ -92,6 +92,13 @@ $dm = ['gemini'=>'gemini-2.0-flash','openai'=>'gpt-4o','anthropic'=>'claude-sonn
 if (!$model) $model = $dm[$provider] ?? 'gemini-2.0-flash';
 
 if ($doStream) {
+    // Verificar key antes de iniciar SSE (una vez iniciado SSE no podemos devolver JSON de error)
+    if (!$apiKey) {
+        http_response_code(402);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'error' => 'No tienes una API Key configurada. Añádela en Ajustes.']);
+        exit;
+    }
     while (ob_get_level()) ob_end_clean();
     ini_set('output_buffering', 'off');
     ini_set('zlib.output_compression', false);
