@@ -195,7 +195,7 @@ const app = {
         });
         this.updateSidebarHistory();
       }
-    } catch (_) { /* fallo silencioso — el título provisional sigue visible */ }
+    } catch (_) {}
   },
 
   // ==========================================
@@ -700,7 +700,6 @@ const app = {
       content: m.content,
     }));
 
-    // Build multimodal content for the last (current) user message if there are files
     const lastMsg = history[history.length - 1];
     if (lastMsg && files && files.length) {
       const content = [];
@@ -739,8 +738,8 @@ const app = {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        this._renderMarkdownInBubble(bubble, '⚠️ ' + (err.error || 'Error del servidor') + ' + '\u2756'));
-        return '⚠️ ' + (err.error || 'Error del servidor') + ' + '\u2756');
+        this._renderMarkdownInBubble(bubble, '⚠️ ' + (err.error || 'Error del servidor') + ' ✦');
+        return '⚠️ ' + (err.error || 'Error del servidor') + ' ✦';
       }
 
       const reader = res.body.getReader();
@@ -766,7 +765,6 @@ const app = {
             if (obj.error) { this._renderMarkdownInBubble(bubble, '⚠️ ' + obj.error); return '⚠️ ' + obj.error; }
             if (obj.chunk) {
               fullText += obj.chunk;
-              // Quitar los dots en el primer chunk y mostrar texto
               const dots = bubble.querySelector('.typing-dots');
               if (dots) dots.remove();
               bubble.textContent = fullText;
@@ -780,7 +778,7 @@ const app = {
         fullText += '\n\n*[Generación detenida]*';
       } else if (!fullText) {
         // Solo mostrar error si no se recibió nada — si ya hay texto, el stream simplemente cerró
-        fullText = '⚠️ Error de conexión con el servidor. + '\u2756');
+        fullText = '⚠️ Error de conexión con el servidor. ✦';
       }
     }
 
@@ -801,7 +799,6 @@ const app = {
     name.textContent = 'VOID';
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble ai streaming-bubble';
-    // Typing dots — se eliminan al renderizar el markdown final
     const dots = document.createElement('span');
     dots.className = 'typing-dots';
     dots.innerHTML = '<span></span><span></span><span></span>';
@@ -1136,11 +1133,11 @@ const app = {
         method: 'POST',
         body: JSON.stringify({ messages, provider: this.apiProvider, model: this.apiModel || defaultModel(this.apiProvider) }),
       });
-      if (!res.ok) return '⚠️ ' + (res.error || 'Error del servidor') + ' + '\u2756');
-      return res.data.text || 'Sin respuesta del núcleo. + '\u2756');
+      if (!res.ok) return '⚠️ ' + (res.error || 'Error del servidor') + ' ✦';
+      return res.data.text || 'Sin respuesta del núcleo. ✦';
     } catch (err) {
       console.error(err);
-      return '⚠️ Error de conexión con el servidor. + '\u2756');
+      return '⚠️ Error de conexión con el servidor. ✦';
     }
   },
 
@@ -1209,14 +1206,14 @@ const app = {
       if (!res.ok) {
         const msg = data.error || 'HTTP ' + res.status;
         if (res.status === 429) {
-          return '⚠️ Límite de uso alcanzado en Gemini. Espera unos minutos o activa facturación en <a href="https://aistudio.google.com" target="_blank">Google AI Studio</a>. + '\u2756');
+          return '⚠️ Límite de uso alcanzado en Gemini. Espera unos minutos o activa facturación en <a href="https://aistudio.google.com" target="_blank">Google AI Studio</a>. ✦';
         }
-        return '⚠️ Error de Gemini: ' + msg + '. Verifica tu API Key. + '\u2756');
+        return '⚠️ Error de Gemini: ' + msg + '. Verifica tu API Key. ✦';
       }
-      return data.data?.text || 'Sin respuesta del núcleo. + '\u2756');
+      return data.data?.text || 'Sin respuesta del núcleo. ✦';
     } catch (err) {
       console.error(err);
-      return '⚠️ Error de conexión con Gemini. Verifica tu API Key en ajustes. + '\u2756');
+      return '⚠️ Error de conexión con Gemini. Verifica tu API Key en ajustes. ✦';
     }
   },
 
@@ -1249,12 +1246,12 @@ const app = {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        return '⚠️ Error de OpenAI: ' + (data.error || 'HTTP ' + res.status) + '. + '\u2756');
+        return '⚠️ Error de OpenAI: ' + (data.error || 'HTTP ' + res.status) + '. ✦';
       }
-      return data.data?.text || 'Sin respuesta del núcleo. + '\u2756');
+      return data.data?.text || 'Sin respuesta del núcleo. ✦';
     } catch (err) {
       console.error(err);
-      return '⚠️ Error de conexión con OpenAI. Verifica tu API Key en ajustes. + '\u2756');
+      return '⚠️ Error de conexión con OpenAI. Verifica tu API Key en ajustes. ✦';
     }
   },
 
@@ -1342,7 +1339,7 @@ const app = {
 
     this.updateModelStatus();
     this.closeSettings();
-    this.showToast('Ajustes guardados + '\u2756'));
+    this.showToast('Ajustes guardados ✦');
   },
 
   updateModelStatus() {
