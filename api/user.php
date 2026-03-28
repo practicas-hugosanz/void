@@ -84,18 +84,16 @@ switch ($action) {
     // ── API SETTINGS ─────────────────────────────────────────────────────────
     case 'settings': {
         if ($method === 'GET') {
-            $row = $db->prepare("SELECT api_key, api_provider FROM users WHERE id = ?");
+            $row = $db->prepare("SELECT api_provider, api_model FROM users WHERE id = ?");
             $row->execute([$user['id']]);
             $s = $row->fetch();
             json_ok([
-                'api_key'      => $s['api_key'] ? '***' : null,
                 'api_provider' => $s['api_provider'] ?? 'gemini',
                 'api_model'    => $s['api_model'] ?? null,
             ]);
         }
 
         // PUT / POST — save
-        $key      = trim(body()['api_key']      ?? '');
         $provider = trim(body()['api_provider'] ?? 'gemini');
         $model    = trim(body()['api_model']    ?? '');
 
@@ -111,10 +109,11 @@ switch ($action) {
         if ($model && !in_array($model, $allowedModels[$provider] ?? [], true))
             json_err('Modelo no permitido para este proveedor');
 
-        $db->prepare("UPDATE users SET api_key = ?, api_provider = ?, api_model = ? WHERE id = ?")
-           ->execute([$key ?: null, $provider, $model ?: null, $user['id']]);
+        // Solo actualizar proveedor y modelo — la api_key la gestiona el servidor vía env vars
+        $db->prepare("UPDATE users SET api_provider = ?, api_model = ? WHERE id = ?")
+           ->execute([$provider, $model ?: null, $user['id']]);
 
-        json_ok(['api_provider' => $provider, 'api_model' => $model, 'has_key' => (bool) $key]);
+        json_ok(['api_provider' => $provider, 'api_model' => $model]);
     }
 
     // ── GET REAL API KEY (used server-side only, never exposed raw to client) ─

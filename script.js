@@ -1260,14 +1260,17 @@ const app = {
   },
 
   openSettings() {
-    this._tempProvider = this.apiProvider;
-    document.querySelectorAll('.provider-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.provider === this.apiProvider);
-    });
-    // Render model selector
-    this._tempModel = this.apiModel || defaultModel(this.apiProvider);
-    this.renderModelSelector(this.apiProvider, this._tempModel);
+    const provider = this.apiProvider || 'gemini';
+    this._tempProvider = provider;
+    this.apiProvider = provider; // asegurar que nunca sea undefined
+
     document.getElementById('modal-settings').classList.add('active');
+
+    document.querySelectorAll('.provider-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.provider === provider);
+    });
+    this._tempModel = this.apiModel || defaultModel(provider);
+    this.renderModelSelector(provider, this._tempModel);
     this.updateModelStatus();
   },
 

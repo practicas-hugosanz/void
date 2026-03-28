@@ -86,7 +86,6 @@ switch ($action) {
                 'name'         => $user['name'],
                 'email'        => $user['email'],
                 'avatar'       => $user['avatar'],
-                'api_key'      => $user['api_key'] ? '***' : null,
                 'api_provider' => $user['api_provider'],
             ]
         ]);
@@ -106,7 +105,6 @@ switch ($action) {
             'name'         => $user['name'],
             'email'        => $user['email'],
             'avatar'       => $user['avatar'],
-            'api_key'      => $user['api_key'] ? '***' : null,
             'api_provider' => $user['api_provider'],
             'api_model'    => $user['api_model'] ?? null,
         ]);
