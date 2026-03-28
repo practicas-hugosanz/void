@@ -1373,6 +1373,7 @@ body::before {
   transition: color 0.2s, background 0.2s;
 }
 .sidebar-conv:hover .sidebar-conv-delete { display: flex; align-items: center; justify-content: center; }
+.sidebar-conv:hover .sidebar-conv-text { padding-right: 24px; }
 .sidebar-conv-delete:hover { color: #ff5555; background: rgba(255,85,85,0.1); }
 
 /* ===== PROVIDER SELECTOR ===== */
