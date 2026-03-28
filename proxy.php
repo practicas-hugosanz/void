@@ -71,7 +71,7 @@ if (!$apiKey)        json_err('No tienes una API Key configurada. Añádela en A
 if (empty($messages)) json_err('Sin mensajes');
 
 $defaultModels = [
-    'gemini'    => 'gemini-2.0-flash',
+    'gemini'    => 'gemini-2.5-flash',
     'openai'    => 'gpt-4o',
     'anthropic' => 'claude-sonnet-4-5',
 ];
@@ -294,7 +294,7 @@ function call_anthropic(string $key, array $messages, string $model = 'claude-so
     return $res['content'][0]['text'] ?? '';
 }
 
-function call_gemini(string $key, array $messages, string $model = 'gemini-2.0-flash'): string {
+function call_gemini(string $key, array $messages, string $model = 'gemini-2.5-flash'): string {
     $contents = []; $sys = null;
     foreach ($messages as $msg) {
         $role = $msg['role']; $text = is_string($msg['content']) ? $msg['content'] : '';
