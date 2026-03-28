@@ -693,7 +693,7 @@ const app = {
 
   // ── Streaming fetch via proxy ─────────────────────────────────────────────
   async fetchViaProxyStream(text, files = [], typingId) {
-    const SYSTEM = 'Eres VOID, una IA minimalista, precisa y profunda. Tu nombre evoca el vacío — como un agujero negro, absorbes las preguntas y devuelves respuestas densas y compactas. Cuando el usuario adjunte archivos, analízalos en detalle y responde sobre su contenido. Usa ocasionalmente el símbolo ✦ al final de respuestas importantes.';
+    const SYSTEM = 'Eres un asistente de IA serio, preciso y directo. Responde siempre en el idioma del usuario. Cuando el usuario adjunte archivos o imágenes, analízalos en detalle y responde sobre su contenido.';
 
     const history = this.chatHistory.slice(-10).map(m => ({
       role: m.role === 'assistant' ? 'assistant' : 'user',
@@ -739,8 +739,8 @@ const app = {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        this._renderMarkdownInBubble(bubble, '⚠️ ' + (err.error || 'Error del servidor') + ' ✦');
-        return '⚠️ ' + (err.error || 'Error del servidor') + ' ✦';
+        this._renderMarkdownInBubble(bubble, '⚠️ ' + (err.error || 'Error del servidor') + ' + '\u2756'));
+        return '⚠️ ' + (err.error || 'Error del servidor') + ' + '\u2756');
       }
 
       const reader = res.body.getReader();
@@ -766,6 +766,9 @@ const app = {
             if (obj.error) { this._renderMarkdownInBubble(bubble, '⚠️ ' + obj.error); return '⚠️ ' + obj.error; }
             if (obj.chunk) {
               fullText += obj.chunk;
+              // Quitar los dots en el primer chunk y mostrar texto
+              const dots = bubble.querySelector('.typing-dots');
+              if (dots) dots.remove();
               bubble.textContent = fullText;
               this.scrollToBottom();
             }
@@ -777,7 +780,7 @@ const app = {
         fullText += '\n\n*[Generación detenida]*';
       } else if (!fullText) {
         // Solo mostrar error si no se recibió nada — si ya hay texto, el stream simplemente cerró
-        fullText = '⚠️ Error de conexión con el servidor. ✦';
+        fullText = '⚠️ Error de conexión con el servidor. + '\u2756');
       }
     }
 
@@ -798,6 +801,11 @@ const app = {
     name.textContent = 'VOID';
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble ai streaming-bubble';
+    // Typing dots — se eliminan al renderizar el markdown final
+    const dots = document.createElement('span');
+    dots.className = 'typing-dots';
+    dots.innerHTML = '<span></span><span></span><span></span>';
+    bubble.appendChild(dots);
     content.appendChild(name);
     content.appendChild(bubble);
     msg.appendChild(avatar);
@@ -1099,7 +1107,7 @@ const app = {
   // SERVER-SIDE AI PROXY (API key stored in DB)
   // ==========================================
   async fetchViaProxy(text, files = []) {
-    const SYSTEM = 'Eres VOID, una IA minimalista, precisa y profunda. Tu nombre evoca el vacío — como un agujero negro, absorbes las preguntas y devuelves respuestas densas y compactas. Cuando el usuario adjunte archivos, analízalos en detalle y responde sobre su contenido. Usa ocasionalmente el símbolo ✦ al final de respuestas importantes.';
+    const SYSTEM = 'Eres un asistente de IA serio, preciso y directo. Responde siempre en el idioma del usuario. Cuando el usuario adjunte archivos o imágenes, analízalos en detalle y responde sobre su contenido.';
 
     // Build messages array in OpenAI format (proxy handles Gemini conversion)
     const history = this.chatHistory.slice(-10).map(m => ({
@@ -1128,11 +1136,11 @@ const app = {
         method: 'POST',
         body: JSON.stringify({ messages, provider: this.apiProvider, model: this.apiModel || defaultModel(this.apiProvider) }),
       });
-      if (!res.ok) return '⚠️ ' + (res.error || 'Error del servidor') + ' ✦';
-      return res.data.text || 'Sin respuesta del núcleo. ✦';
+      if (!res.ok) return '⚠️ ' + (res.error || 'Error del servidor') + ' + '\u2756');
+      return res.data.text || 'Sin respuesta del núcleo. + '\u2756');
     } catch (err) {
       console.error(err);
-      return '⚠️ Error de conexión con el servidor. ✦';
+      return '⚠️ Error de conexión con el servidor. + '\u2756');
     }
   },
 
@@ -1201,19 +1209,19 @@ const app = {
       if (!res.ok) {
         const msg = data.error || 'HTTP ' + res.status;
         if (res.status === 429) {
-          return '⚠️ Límite de uso alcanzado en Gemini. Espera unos minutos o activa facturación en <a href="https://aistudio.google.com" target="_blank">Google AI Studio</a>. ✦';
+          return '⚠️ Límite de uso alcanzado en Gemini. Espera unos minutos o activa facturación en <a href="https://aistudio.google.com" target="_blank">Google AI Studio</a>. + '\u2756');
         }
-        return '⚠️ Error de Gemini: ' + msg + '. Verifica tu API Key. ✦';
+        return '⚠️ Error de Gemini: ' + msg + '. Verifica tu API Key. + '\u2756');
       }
-      return data.data?.text || 'Sin respuesta del núcleo. ✦';
+      return data.data?.text || 'Sin respuesta del núcleo. + '\u2756');
     } catch (err) {
       console.error(err);
-      return '⚠️ Error de conexión con Gemini. Verifica tu API Key en ajustes. ✦';
+      return '⚠️ Error de conexión con Gemini. Verifica tu API Key en ajustes. + '\u2756');
     }
   },
 
   async fetchOpenAI(text, files = []) {
-    const SYSTEM = 'Eres VOID, una IA minimalista, precisa y profunda. Tu nombre evoca el vacío — como un agujero negro, absorbes las preguntas y devuelves respuestas densas y compactas. Cuando el usuario adjunte archivos, analízalos en detalle. Usa ocasionalmente el símbolo ✦ al final de respuestas.';
+    const SYSTEM = 'Eres un asistente de IA serio, preciso y directo. Responde siempre en el idioma del usuario. Cuando el usuario adjunte archivos o imágenes, analízalos en detalle y responde sobre su contenido.';
     try {
       const history = this.chatHistory.slice(-10).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
 
@@ -1241,12 +1249,12 @@ const app = {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        return '⚠️ Error de OpenAI: ' + (data.error || 'HTTP ' + res.status) + '. ✦';
+        return '⚠️ Error de OpenAI: ' + (data.error || 'HTTP ' + res.status) + '. + '\u2756');
       }
-      return data.data?.text || 'Sin respuesta del núcleo. ✦';
+      return data.data?.text || 'Sin respuesta del núcleo. + '\u2756');
     } catch (err) {
       console.error(err);
-      return '⚠️ Error de conexión con OpenAI. Verifica tu API Key en ajustes. ✦';
+      return '⚠️ Error de conexión con OpenAI. Verifica tu API Key en ajustes. + '\u2756');
     }
   },
 
@@ -1334,7 +1342,7 @@ const app = {
 
     this.updateModelStatus();
     this.closeSettings();
-    this.showToast('Ajustes guardados ✦');
+    this.showToast('Ajustes guardados + '\u2756'));
   },
 
   updateModelStatus() {
