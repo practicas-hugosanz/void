@@ -828,7 +828,8 @@ const app = {
     };
     marked.use({ renderer });
 
-    bubble.innerHTML = marked.parse(text);
+    const parsed = marked.parse(text.trim());
+    bubble.innerHTML = parsed.replace(/<p>\s*<\/p>\s*$/i, '');
     this.scrollToBottom();
   },
 
