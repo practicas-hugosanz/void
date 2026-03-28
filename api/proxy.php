@@ -13,22 +13,61 @@
  * When stream=false           → { ok: true, data: { text: "..." } }
  */
 
-require_once __DIR__ . '/../includes/auth.php';
-cors();
+// ─── Helpers mínimos (no dependen de BD) ─────────────────────────────────────
+header('Access-Control-Allow-Origin: ' . ($_SERVER['HTTP_ORIGIN'] ?? '*'));
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Api-Key');
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
+
+function json_ok(mixed $data = null): never {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['ok' => true, 'data' => $data]);
+    exit;
+}
+function json_err(string $message, int $status = 400): never {
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['ok' => false, 'error' => $message]);
+    exit;
+}
+function body(): array {
+    static $parsed = null;
+    if ($parsed !== null) return $parsed;
+    $parsed = json_decode(file_get_contents('php://input') ?: '{}', true) ?: [];
+    return $parsed;
+}
+
+// ─── Obtener API key: primero BD (si existe), luego header del cliente ────────
+$apiKey  = '';
+$dbUser  = null;
+
+// Intentar autenticación con BD solo si DATABASE_URL está disponible
+if (getenv('DATABASE_URL')) {
+    try {
+        require_once __DIR__ . '/../includes/auth.php';
+        $dbUser = resolve_session();
+        if ($dbUser) {
+            $db  = get_db();
+            $row = $db->prepare("SELECT api_key, api_provider, api_model FROM users WHERE id = ?");
+            $row->execute([$dbUser['id']]);
+            $settings = $row->fetch();
+            $apiKey   = $settings['api_key'] ?? '';
+        }
+    } catch (Throwable $e) {
+        // BD no disponible — continuar en modo sin sesión
+    }
+}
+
+// Modo sin BD o sin sesión: aceptar key desde el header X-Api-Key
+if (!$apiKey) {
+    $apiKey = $_SERVER['HTTP_X_API_KEY'] ?? '';
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') json_err('Método no permitido', 405);
 
-$user = require_auth();
-$db   = get_db();
-
-$row = $db->prepare("SELECT api_key, api_provider, api_model FROM users WHERE id = ?");
-$row->execute([$user['id']]);
-$settings = $row->fetch();
-
-// Accept key from server DB, or from client header (direct/guest mode)
-$apiKey   = $settings['api_key'] ?: ($_SERVER['HTTP_X_API_KEY'] ?? '');
-$provider = body()['provider']     ?? ($settings['api_provider'] ?? 'gemini');
-$model    = body()['model']        ?? ($settings['api_model']    ?? '');
+$provider = body()['provider'] ?? ($settings['api_provider'] ?? 'gemini');
+$model    = body()['model']    ?? ($settings['api_model']    ?? '');
 
 // ─── Acción especial: generar título ──────────────────────────────────────────
 if ((body()['action'] ?? '') === 'title') {

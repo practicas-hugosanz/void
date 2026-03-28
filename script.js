@@ -89,13 +89,25 @@ const app = {
   // ==========================================
   async loadState() {
     const res = await apiFetch(API.auth + '?action=me');
-    if (!res.ok) return; // not authenticated
+
+    // Cargar ajustes desde localStorage como respaldo (funciona sin BD)
+    const lsKey      = localStorage.getItem('void_apikey')    || '';
+    const lsProvider = localStorage.getItem('void_provider')  || 'gemini';
+    const lsModel    = localStorage.getItem('void_model')     || '';
+    if (lsKey) {
+      this.apiKey      = lsKey;
+      this.apiProvider = lsProvider;
+      this.apiModel    = lsModel || defaultModel(lsProvider);
+      this.useProxy    = true;
+    }
+
+    if (!res.ok) return; // not authenticated via BD — continuar igual
 
     this.currentUser = res.data;
-    this.apiProvider = res.data.api_provider || 'gemini';
-    this.apiModel = res.data.api_model || defaultModel(this.apiProvider);
+    this.apiProvider = res.data.api_provider || lsProvider || 'gemini';
+    this.apiModel = res.data.api_model || lsModel || defaultModel(this.apiProvider);
     // has_key: server has an API key stored for this user
-    this.useProxy = !!res.data.api_key; // api_key comes back as '***' if set
+    this.useProxy = !!res.data.api_key || !!lsKey;
 
     // Sidebar state stored locally (cosmetic preference)
     this.sidebarCollapsed = localStorage.getItem('void_sidebar_' + this.currentUser.email) === 'true';
@@ -701,7 +713,7 @@ const app = {
       const res = await fetch(API.proxy, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Api-Key': this.apiKey || '' },
         body: JSON.stringify({ messages, provider: this.apiProvider, model: this.apiModel || defaultModel(this.apiProvider), stream: true }),
         signal: controller.signal,
       });
@@ -1317,21 +1329,36 @@ const app = {
     const model = this._tempModel || this.apiModel || defaultModel(provider);
     this._tempProvider = null;
     this._tempModel = null;
-    const res = await apiFetch(API.user + '?action=settings', {
-      method: 'PUT',
-      body: JSON.stringify({ api_key: key, api_provider: provider, api_model: model }),
-    });
-    if (!res.ok) { this.showToast('\u26a0\ufe0f ' + res.error); return; }
+
+    // Intentar guardar en BD (puede fallar si no hay backend)
+    try {
+      const res = await apiFetch(API.user + '?action=settings', {
+        method: 'PUT',
+        body: JSON.stringify({ api_key: key, api_provider: provider, api_model: model }),
+      });
+      if (!res.ok && res.error && !res.error.includes('autenticad')) {
+        this.showToast('⚠️ ' + res.error); return;
+      }
+    } catch(e) { /* sin BD — continuar igualmente */ }
+
     this.apiProvider = provider;
     this.apiModel = model;
+    this.apiKey = key;
+    this.useProxy = !!key;
+
+    // Guardar en localStorage como respaldo sin BD
+    localStorage.setItem('void_apikey', key);
+    localStorage.setItem('void_provider', provider);
+    localStorage.setItem('void_model', model);
+
     try {
       const me = await apiFetch(API.auth + '?action=me');
-      this.useProxy = me.ok ? !!me.data.api_key : !!key;
-    } catch(e) { this.useProxy = !!key; }
-    this.apiKey = key;     // also keep locally for direct mode fallback
+      if (me.ok) this.useProxy = !!me.data.api_key || !!key;
+    } catch(e) {}
+
     this.updateModelStatus();
     this.closeSettings();
-    this.showToast('Ajustes guardados \u2756');
+    this.showToast('Ajustes guardados ✦');
   },
 
   updateModelStatus() {
