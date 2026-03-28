@@ -165,19 +165,20 @@ const app = {
     apiFetch(API.convs + '?action=save', {
       method: 'POST',
       body: JSON.stringify({ id: conv.id, title: conv.title, messages: conv.messages }),
-    });
+    }).then(res => {
+      if (!res.ok) console.error('[VOID] Error guardando conversación:', res.error);
+    }).catch(err => console.error('[VOID] Error guardando conversación:', err));
 
     // Generar título con IA exactamente tras el primer intercambio completo
     const assistantMsgs = this.chatHistory.filter(m => m.role === 'assistant').length;
     if (assistantMsgs === 1 && !this.conversations[idx]._aiTitled && this.useProxy) {
       this.conversations[idx]._aiTitled = true;
-      this._generateAiTitle(idx);
+      this._generateAiTitle(this.conversations[idx].id);
     }
   },
 
-  async _generateAiTitle(convIdx) {
-    if (convIdx === -1) return;
-    const conv = this.conversations[convIdx];
+  async _generateAiTitle(convId) {
+    const conv = this.conversations.find(c => c.id === convId);
     if (!conv) return;
     try {
       const res = await apiFetch(API.proxy, {
@@ -189,6 +190,8 @@ const app = {
         apiFetch(API.convs + '?action=save', {
           method: 'POST',
           body: JSON.stringify({ id: conv.id, title: conv.title, messages: conv.messages }),
+        }).then(res => {
+          if (!res.ok) console.error('[VOID] Error guardando título IA:', res.error);
         });
         this.updateSidebarHistory();
       }

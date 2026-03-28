@@ -50,19 +50,21 @@ switch ($action) {
         $owns = $db->prepare("SELECT id FROM conversations WHERE id = ? AND user_id = ?");
         $owns->execute([$id, $user['id']]);
 
-        if ($owns->fetch()) {
-            // Update
-            $db->prepare("
-                UPDATE conversations
-                SET title = ?, messages = ?, updated_at = NOW()
-                WHERE id = ? AND user_id = ?
-            ")->execute([$title, $messagesJson, $id, $user['id']]);
-        } else {
-            // Insert
-            $db->prepare("
-                INSERT INTO conversations (id, user_id, title, messages)
-                VALUES (?, ?, ?, ?)
-            ")->execute([$id, $user['id'], $title, $messagesJson]);
+        try {
+            if ($owns->fetch()) {
+                $db->prepare("
+                    UPDATE conversations
+                    SET title = ?, messages = ?, updated_at = NOW()
+                    WHERE id = ? AND user_id = ?
+                ")->execute([$title, $messagesJson, $id, $user['id']]);
+            } else {
+                $db->prepare("
+                    INSERT INTO conversations (id, user_id, title, messages, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, NOW(), NOW())
+                ")->execute([$id, $user['id'], $title, $messagesJson]);
+            }
+        } catch (Throwable $e) {
+            json_err('Error al guardar conversación: ' . $e->getMessage(), 500);
         }
 
         json_ok(['id' => $id, 'title' => $title]);
