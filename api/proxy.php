@@ -80,7 +80,7 @@ if ((body()['action'] ?? '') === 'title') {
         $content = is_string($m['content']) ? $m['content'] : '';
         $excerpt .= "$role: " . mb_substr($content, 0, 200) . "\n";
     }
-    $dm = ['gemini'=>'gemini-2.0-flash','openai'=>'gpt-4o','anthropic'=>'claude-haiku-4-5'];
+    $dm = ['gemini'=>'gemini-2.5-flash','openai'=>'gpt-4o','anthropic'=>'claude-haiku-4-5'];
     if (!$model) $model = $dm[$provider] ?? 'gemini-2.0-flash';
 
     $titlePrompt = [['role'=>'user','content'=>
@@ -103,7 +103,7 @@ $doStream = body()['stream']   ?? true;
 if (!$apiKey)         json_err('El servicio no está configurado. Contacta al administrador.', 503);
 if (empty($messages)) json_err('Sin mensajes', 400);
 
-$dm = ['gemini'=>'gemini-2.0-flash','openai'=>'gpt-4o','anthropic'=>'claude-sonnet-4-6-20250514'];
+$dm = ['gemini'=>'gemini-2.5-flash','openai'=>'gpt-4o','anthropic'=>'claude-sonnet-4-6-20250514'];
 if (!$model) $model = $dm[$provider] ?? 'gemini-2.0-flash';
 
 if ($doStream) {
@@ -361,7 +361,7 @@ function stream_gemini(string $key, array $messages, string $model): void {
     sse_done();
 }
 
-function call_gemini(string $key, array $messages, string $model = 'gemini-2.0-flash'): string {
+function call_gemini(string $key, array $messages, string $model = 'gemini-2.5-flash'): string {
     $contents = []; $sys = null;
     foreach ($messages as $msg) {
         $role = $msg['role']; $text = is_string($msg['content']) ? $msg['content'] : '';

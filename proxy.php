@@ -49,7 +49,7 @@ if ((body()['action'] ?? '') === 'title') {
         'openai'    => 'gpt-4o',
         'anthropic' => 'claude-haiku-4-5',
     ];
-    if (!$model) $model = $defaultModels[$provider] ?? 'gemini-2.0-flash';
+    if (!$model) $model = $defaultModels[$provider] ?? 'gemini-2.5-flash';
 
     $titlePrompt = [['role' => 'user', 'content' =>
         "Genera un título MUY corto (3-5 palabras) para esta conversación. " .
