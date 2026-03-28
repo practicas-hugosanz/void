@@ -931,8 +931,8 @@ body::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 0.4em;
-  bottom: 0.4em;
+  top: 0;
+  bottom: 0;
   width: 2px;
   background: rgba(232,255,71,0.2);
   border-radius: 2px;
