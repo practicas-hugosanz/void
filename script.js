@@ -44,12 +44,9 @@ function defaultModel(provider) {
 }
 
 async function apiFetch(url, options = {}) {
-  // Inyectar X-Api-Key en llamadas al proxy para que funcione sin sesión de BD
-  const extraHeaders = {};
-  if (url === API.proxy && app.apiKey) extraHeaders['X-Api-Key'] = app.apiKey;
   const res = await fetch(url, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...extraHeaders, ...(options.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options,
   });
   const json = await res.json().catch(() => ({ ok: false, error: 'Respuesta inválida del servidor' }));
@@ -61,7 +58,7 @@ const app = {
   chatHistory: [],       // Messages of the CURRENT conversation
   conversations: [],     // All saved conversations [{id, title, messages, createdAt}]
   activeConvId: null,    // ID of the currently loaded conversation
-  apiKey: '',            // Only used client-side for direct-mode (proxy mode stores on server)
+  apiKey: '',            // deprecated — el servidor gestiona las API keys
   apiProvider: 'gemini', // 'gemini' | 'openai' | 'anthropic'
   apiModel: '',          // specific model, e.g. 'gpt-4o', 'gemini-2.0-flash'
   useProxy: true,        // true = API key stored server-side; false = direct from browser
@@ -94,23 +91,18 @@ const app = {
     const res = await apiFetch(API.auth + '?action=me');
 
     // Cargar ajustes desde localStorage como respaldo (funciona sin BD)
-    const lsKey      = localStorage.getItem('void_apikey')    || '';
     const lsProvider = localStorage.getItem('void_provider')  || 'gemini';
     const lsModel    = localStorage.getItem('void_model')     || '';
-    if (lsKey) {
-      this.apiKey      = lsKey;
-      this.apiProvider = lsProvider;
-      this.apiModel    = lsModel || defaultModel(lsProvider);
-      this.useProxy    = true;
-    }
+    this.apiProvider = lsProvider;
+    this.apiModel    = lsModel || defaultModel(lsProvider);
+    this.useProxy    = true; // el servidor siempre tiene la key configurada
 
     if (!res.ok) return; // not authenticated via BD — continuar igual
 
     this.currentUser = res.data;
     this.apiProvider = res.data.api_provider || lsProvider || 'gemini';
     this.apiModel = res.data.api_model || lsModel || defaultModel(this.apiProvider);
-    // has_key: server has an API key stored for this user
-    this.useProxy = !!res.data.api_key || !!lsKey;
+    this.useProxy = true; // el servidor gestiona la API key
 
     // Sidebar state stored locally (cosmetic preference)
     this.sidebarCollapsed = localStorage.getItem('void_sidebar_' + this.currentUser.email) === 'true';
@@ -269,7 +261,7 @@ const app = {
     this.currentUser = data.user;
     this.apiProvider = data.user.api_provider || 'gemini';
     this.apiModel = data.user.api_model || defaultModel(this.apiProvider);
-    this.useProxy = !!data.user.api_key; // '***' means key is set server-side
+    this.useProxy = true; // el servidor siempre tiene la key configurada
     await this.loadState();
     this.showPage('chat');
     this.renderChat();
@@ -638,7 +630,7 @@ const app = {
     const typingId = this.addTypingIndicator();
 
     let responseText = '';
-    if (this.useProxy || this.apiKey) {
+    if (this.useProxy) {
       // Always route through the server proxy to avoid CORB/CORS issues
       // when calling AI APIs directly from the browser
       responseText = await this.fetchViaProxyStream(text, attachedFiles, typingId);
@@ -716,7 +708,7 @@ const app = {
       const res = await fetch(API.proxy, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json', 'X-Api-Key': this.apiKey || '' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages, provider: this.apiProvider, model: this.apiModel || defaultModel(this.apiProvider), stream: true }),
         signal: controller.signal,
       });
@@ -1146,8 +1138,7 @@ const app = {
   },
 
   async fetchGeminiAI(text, files = []) {
-    // Routed through PHP proxy to avoid CORB browser blocking on direct Google API calls.
-    // The API key is sent via X-Api-Key header so it is used server-side but not stored.
+    // Routed through PHP proxy — el servidor gestiona la API key.
     try {
       const history = this.chatHistory.slice(-10, -1).map(m => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
@@ -1170,10 +1161,7 @@ const app = {
       const res = await fetch(API.proxy, {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Api-Key': this.apiKey,          // sent to proxy, never stored
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages,
           provider: 'gemini',
@@ -1218,17 +1206,17 @@ const app = {
       const messages = [{ role: 'system', content: SYSTEM }, ...history.slice(0, -1)];
       messages.push({ role: 'user', content: files.length ? content : (text || '') });
 
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      const res = await fetch(API.proxy, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + this.apiKey },
-        body: JSON.stringify({ model: 'gpt-4o-mini', messages })
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, provider: 'openai', model: this.apiModel || 'gpt-4o', stream: false }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return '⚠️ Error de OpenAI: ' + (err.error?.message || 'HTTP ' + res.status) + '. ✦';
+        return '⚠️ Error de OpenAI: ' + (data.error || 'HTTP ' + res.status) + '. ✦';
       }
-      const data = await res.json();
-      return data.choices[0].message.content;
+      return data.data?.text || 'Sin respuesta del núcleo. ✦';
     } catch (err) {
       console.error(err);
       return '⚠️ Error de conexión con OpenAI. Verifica tu API Key en ajustes. ✦';
@@ -1266,24 +1254,6 @@ const app = {
     document.querySelectorAll('.provider-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.provider === provider);
     });
-    const label = document.getElementById('apikey-label');
-    const hint = document.getElementById('apikey-hint');
-    const input = document.getElementById('settings-apikey');
-    if (provider === 'gemini') {
-      label.textContent = 'Google Gemini API Key';
-      input.placeholder = 'AIza...';
-      hint.innerHTML = 'Obtén tu clave en <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a>';
-    } else if (provider === 'anthropic') {
-      label.textContent = 'Anthropic API Key';
-      input.placeholder = 'sk-ant-...';
-      hint.innerHTML = 'Obtén tu clave en <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic Console</a>';
-    } else {
-      label.textContent = 'OpenAI API Key';
-      input.placeholder = 'sk-...';
-      hint.innerHTML = 'Obtén tu clave en <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>';
-    }
-    // Clear input when switching so each provider feels independent
-    input.value = '';
     // Reset temp model and re-render model selector for new provider
     this._tempModel = defaultModel(provider);
     this.renderModelSelector(provider, this._tempModel);
@@ -1294,25 +1264,6 @@ const app = {
     document.querySelectorAll('.provider-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.provider === this.apiProvider);
     });
-    const label = document.getElementById('apikey-label');
-    const hint = document.getElementById('apikey-hint');
-    const input = document.getElementById('settings-apikey');
-    if (this.apiProvider === 'gemini') {
-      label.textContent = 'Google Gemini API Key';
-      input.placeholder = 'AIza...';
-      hint.innerHTML = 'Obtén tu clave en <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a>';
-    } else if (this.apiProvider === 'anthropic') {
-      label.textContent = 'Anthropic API Key';
-      input.placeholder = 'sk-ant-...';
-      hint.innerHTML = 'Obtén tu clave en <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic Console</a>';
-    } else {
-      label.textContent = 'OpenAI API Key';
-      input.placeholder = 'sk-...';
-      hint.innerHTML = 'Obtén tu clave en <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>';
-    }
-    // Don't pre-fill the key field (server stores it, never expose raw to client)
-    input.value = '';
-    input.placeholder = this.useProxy ? 'Clave guardada en servidor — introduce una nueva para cambiarla' : (this.apiProvider === 'gemini' ? 'AIza...' : 'sk-...');
     // Render model selector
     this._tempModel = this.apiModel || defaultModel(this.apiProvider);
     this.renderModelSelector(this.apiProvider, this._tempModel);
@@ -1327,7 +1278,6 @@ const app = {
   },
 
   async saveSettings() {
-    const key = document.getElementById('settings-apikey').value.trim();
     const provider = this._tempProvider || this.apiProvider;
     const model = this._tempModel || this.apiModel || defaultModel(provider);
     this._tempProvider = null;
@@ -1337,7 +1287,7 @@ const app = {
     try {
       const res = await apiFetch(API.user + '?action=settings', {
         method: 'PUT',
-        body: JSON.stringify({ api_key: key, api_provider: provider, api_model: model }),
+        body: JSON.stringify({ api_provider: provider, api_model: model }),
       });
       if (!res.ok && res.error && !res.error.includes('autenticad')) {
         this.showToast('⚠️ ' + res.error); return;
@@ -1346,18 +1296,11 @@ const app = {
 
     this.apiProvider = provider;
     this.apiModel = model;
-    this.apiKey = key;
-    this.useProxy = !!key;
+    this.useProxy = true; // el servidor siempre tiene la key configurada
 
     // Guardar en localStorage como respaldo sin BD
-    localStorage.setItem('void_apikey', key);
     localStorage.setItem('void_provider', provider);
     localStorage.setItem('void_model', model);
-
-    try {
-      const me = await apiFetch(API.auth + '?action=me');
-      if (me.ok) this.useProxy = !!me.data.api_key || !!key;
-    } catch(e) {}
 
     this.updateModelStatus();
     this.closeSettings();
@@ -1368,7 +1311,7 @@ const app = {
     const dot = document.getElementById('model-status-dot');
     const text = document.getElementById('model-status-text');
     const badge = document.querySelector('.status-badge');
-    const isConnected = this.useProxy || this.apiKey;
+    const isConnected = this.useProxy;
     if (isConnected) {
       const modelList = MODELS[this.apiProvider] || [];
       const modelInfo = modelList.find(m => m.id === this.apiModel);

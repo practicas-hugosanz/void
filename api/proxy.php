@@ -23,39 +23,54 @@ cors();
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') json_err('Método no permitido', 405);
 
 // ─── Obtener API key ──────────────────────────────────────────────────────────
-// Prioridad: 1) BD del usuario autenticado  2) Header X-Api-Key del cliente
+// Prioridad: 1) Variables de entorno Railway  2) Preferencias BD usuario  3) Header X-Api-Key
 $apiKey     = '';
 $dbProvider = 'gemini';
 $dbModel    = '';
 
+// 1) Variables de entorno del servidor (Railway) — máxima prioridad
+$envGemini    = trim((string) getenv('GEMINI_API_KEY'));
+$envOpenAI    = trim((string) getenv('OPENAI_API_KEY'));
+$envAnthropic = trim((string) getenv('ANTHROPIC_API_KEY'));
+
+// Determinar proveedor por defecto según qué variable de entorno está configurada
+if ($envGemini)        { $dbProvider = 'gemini';    }
+elseif ($envOpenAI)    { $dbProvider = 'openai';    }
+elseif ($envAnthropic) { $dbProvider = 'anthropic'; }
+
+// 2) Si hay BD, leer preferencias del usuario (proveedor/modelo), pero NO su api_key personal
 if (getenv('DATABASE_URL')) {
     try {
         $dbUser = resolve_session();
         if ($dbUser) {
             $db  = get_db();
-            $row = $db->prepare("SELECT api_key, api_provider, api_model FROM users WHERE id = ?");
+            $row = $db->prepare("SELECT api_provider, api_model FROM users WHERE id = ?");
             $row->execute([$dbUser['id']]);
             $s = $row->fetch() ?: [];
-            $apiKey     = trim($s['api_key']      ?? '');
-            $dbProvider = trim($s['api_provider'] ?? 'gemini') ?: 'gemini';
-            $dbModel    = trim($s['api_model']    ?? '');
+            if (!empty($s['api_provider'])) $dbProvider = trim($s['api_provider']) ?: $dbProvider;
+            if (!empty($s['api_model']))    $dbModel    = trim($s['api_model']);
         }
     } catch (Throwable $e) {
         // BD no disponible — continuar sin ella
     }
 }
 
-// Sin BD o sin sesión: tomar key del header X-Api-Key
+$provider = trim(body()['provider'] ?? $dbProvider);
+$model    = trim(body()['model']    ?? $dbModel);
+
+// Asignar la key del servidor según el proveedor seleccionado
+if ($provider === 'openai')        $apiKey = $envOpenAI;
+elseif ($provider === 'anthropic') $apiKey = $envAnthropic;
+else                               $apiKey = $envGemini;
+
+// 3) Fallback: header X-Api-Key del cliente (solo si no hay key de servidor)
 if (!$apiKey) {
     $apiKey = trim($_SERVER['HTTP_X_API_KEY'] ?? '');
 }
 
-$provider = trim(body()['provider'] ?? $dbProvider);
-$model    = trim(body()['model']    ?? $dbModel);
-
 // ─── Acción: generar título ───────────────────────────────────────────────────
 if ((body()['action'] ?? '') === 'title') {
-    if (!$apiKey) json_err('No tienes una API Key configurada.', 402);
+    if (!$apiKey) json_err('El servicio no está configurado. Contacta al administrador.', 503);
     $messages = body()['messages'] ?? [];
     if (empty($messages)) json_err('Sin mensajes para generar título');
 
@@ -85,7 +100,7 @@ if ((body()['action'] ?? '') === 'title') {
 $messages = body()['messages'] ?? [];
 $doStream = body()['stream']   ?? true;
 
-if (!$apiKey)         json_err('No tienes una API Key configurada. Añádela en Ajustes.', 402);
+if (!$apiKey)         json_err('El servicio no está configurado. Contacta al administrador.', 503);
 if (empty($messages)) json_err('Sin mensajes', 400);
 
 $dm = ['gemini'=>'gemini-2.0-flash','openai'=>'gpt-4o','anthropic'=>'claude-sonnet-4-6'];
@@ -96,7 +111,7 @@ if ($doStream) {
     if (!$apiKey) {
         http_response_code(402);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok' => false, 'error' => 'No tienes una API Key configurada. Añádela en Ajustes.']);
+        echo json_encode(['ok' => false, 'error' => 'El servicio no está configurado. Contacta al administrador.']);
         exit;
     }
     while (ob_get_level()) ob_end_clean();

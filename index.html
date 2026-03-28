@@ -616,8 +616,7 @@
         </button>
       </div>
       <div class="modal-body">
-        <p class="modal-desc">Conecta VOID a un motor real. Elige tu proveedor e introduce tu API Key. Sin clave, VOID
-          usará su motor de simulación interno (Mock).</p>
+        <p class="modal-desc">Elige el proveedor de IA y el modelo que VOID usará para responder.</p>
 
         <div class="form-field">
           <label class="form-label">Proveedor de IA</label>
@@ -639,13 +638,6 @@
           <div class="model-selector" id="model-selector">
             <!-- populated by JS based on provider -->
           </div>
-        </div>
-
-        <div class="form-field">
-          <label class="form-label" id="apikey-label">Google Gemini API Key</label>
-          <input class="form-input" type="password" placeholder="AIza..." id="settings-apikey">
-          <p class="form-hint" id="apikey-hint">Obtén tu clave en <a href="https://aistudio.google.com/apikey"
-              target="_blank">Google AI Studio</a></p>
         </div>
 
         <div class="settings-status" id="settings-status">
