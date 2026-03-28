@@ -723,7 +723,8 @@ const app = {
       const decoder = new TextDecoder();
       let buf = '';
 
-      while (true) {
+      let streamDone = false;
+      while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
         buf += decoder.decode(value, { stream: true });
@@ -735,13 +736,12 @@ const app = {
           const trimmed = line.trim();
           if (!trimmed.startsWith('data: ')) continue;
           const payload = trimmed.slice(6);
-          if (payload === '[DONE]') break;
+          if (payload === '[DONE]') { streamDone = true; break; }
           try {
             const obj = JSON.parse(payload);
             if (obj.error) { this._renderMarkdownInBubble(bubble, '⚠️ ' + obj.error); return '⚠️ ' + obj.error; }
             if (obj.chunk) {
               fullText += obj.chunk;
-              // Show raw text while streaming (fast), render markdown at the end
               bubble.textContent = fullText;
               this.scrollToBottom();
             }
@@ -751,7 +751,8 @@ const app = {
     } catch (err) {
       if (err.name === 'AbortError') {
         fullText += '\n\n*[Generación detenida]*';
-      } else {
+      } else if (!fullText) {
+        // Solo mostrar error si no se recibió nada — si ya hay texto, el stream simplemente cerró
         fullText = '⚠️ Error de conexión con el servidor. ✦';
       }
     }
