@@ -93,7 +93,10 @@ const app = {
     const lsProvider = localStorage.getItem('void_provider')  || 'gemini';
     const lsModel    = localStorage.getItem('void_model')     || '';
     this.apiProvider = lsProvider;
-    this.apiModel    = lsModel || defaultModel(lsProvider);
+    // Si el modelo guardado ya no existe en la lista, resetear al por defecto
+    const validModels = (MODELS[lsProvider] || []).map(m => m.id);
+    this.apiModel = (lsModel && validModels.includes(lsModel)) ? lsModel : defaultModel(lsProvider);
+    if (this.apiModel !== lsModel) localStorage.setItem('void_model', this.apiModel);
     this.useProxy    = true; // el servidor siempre tiene la key configurada
 
     if (!res.ok) return; // not authenticated via BD — continuar igual
