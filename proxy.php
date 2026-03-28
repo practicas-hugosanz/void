@@ -45,7 +45,7 @@ if ((body()['action'] ?? '') === 'title') {
     }
 
     $defaultModels = [
-        'gemini'    => 'gemini-2.0-flash',
+        'gemini'    => 'gemini-2.5-flash',
         'openai'    => 'gpt-4o',
         'anthropic' => 'claude-haiku-4-5',
     ];
