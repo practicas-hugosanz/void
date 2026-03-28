@@ -103,7 +103,7 @@ $doStream = body()['stream']   ?? true;
 if (!$apiKey)         json_err('El servicio no está configurado. Contacta al administrador.', 503);
 if (empty($messages)) json_err('Sin mensajes', 400);
 
-$dm = ['gemini'=>'gemini-2.0-flash','openai'=>'gpt-4o','anthropic'=>'claude-sonnet-4-6'];
+$dm = ['gemini'=>'gemini-2.0-flash','openai'=>'gpt-4o','anthropic'=>'claude-sonnet-4-6-20250514'];
 if (!$model) $model = $dm[$provider] ?? 'gemini-2.0-flash';
 
 if ($doStream) {
@@ -304,28 +304,60 @@ function stream_gemini(string $key, array $messages, string $model): void {
 
     $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
          . urlencode($model).':streamGenerateContent?alt=sse&key='.urlencode($key);
-    $lineBuf = '';
+    $lineBuf = ''; $rawBuf = ''; $sentChunk = false;
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_POST          => true,
         CURLOPT_POSTFIELDS    => json_encode($body),
         CURLOPT_HTTPHEADER    => ['Content-Type: application/json'],
         CURLOPT_TIMEOUT       => 120,
-        CURLOPT_WRITEFUNCTION => function($ch, $data) use (&$lineBuf) {
+        CURLOPT_WRITEFUNCTION => function($ch, $data) use (&$lineBuf, &$rawBuf, &$sentChunk) {
+            $rawBuf  .= $data;
             $lineBuf .= $data;
             while (($pos = strpos($lineBuf, "\n")) !== false) {
                 $line    = trim(substr($lineBuf, 0, $pos));
                 $lineBuf = substr($lineBuf, $pos + 1);
-                if (!str_starts_with($line, 'data: ')) continue;
-                $obj   = json_decode(substr($line, 6), true);
+                if (!str_starts_with($line, 'data: ')) {
+                    // Errores de Gemini pueden venir como JSON plano sin prefijo data:
+                    if (str_starts_with($line, '{')) {
+                        $plain = json_decode($line, true);
+                        if (!empty($plain['error'])) {
+                            $msg  = $plain['error']['message'] ?? 'Error de Gemini';
+                            $code = (int)($plain['error']['code'] ?? 0);
+                            if ($code === 400) $msg = 'Modelo no disponible o solicitud inválida.';
+                            elseif ($code === 401 || $code === 403) $msg = 'API Key de Gemini inválida o sin permisos.';
+                            elseif ($code === 429) $msg = 'Límite de Gemini superado. Espera un momento.';
+                            sse_error($msg);
+                        }
+                    }
+                    continue;
+                }
+                $obj = json_decode(substr($line, 6), true);
+                if (!empty($obj['error'])) {
+                    $msg  = $obj['error']['message'] ?? 'Error de Gemini';
+                    $code = (int)($obj['error']['code'] ?? 0);
+                    if ($code === 401 || $code === 403) $msg = 'API Key de Gemini inválida o sin permisos.';
+                    elseif ($code === 429) $msg = 'Límite de Gemini superado. Espera un momento.';
+                    sse_error($msg); return strlen($data);
+                }
                 $chunk = $obj['candidates'][0]['content']['parts'][0]['text'] ?? '';
-                if ($chunk !== '') sse_chunk($chunk);
+                if ($chunk !== '') { sse_chunk($chunk); $sentChunk = true; }
             }
             return strlen($data);
         },
     ]);
-    $ok = curl_exec($ch); $err = curl_error($ch); curl_close($ch);
+    $ok = curl_exec($ch); $err = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
     if (!$ok || $err) { sse_error('Error de red con Gemini: '.($err?:'sin respuesta')); return; }
+    if ($httpCode >= 400 && !$sentChunk) {
+        $errBody = json_decode($rawBuf, true);
+        $msg = $errBody['error']['message'] ?? 'Error HTTP '.$httpCode.' de Gemini';
+        if ($httpCode === 400) $msg = 'Modelo no disponible o solicitud inválida.';
+        elseif ($httpCode === 401 || $httpCode === 403) $msg = 'API Key de Gemini inválida o sin permisos.';
+        elseif ($httpCode === 429) $msg = 'Límite de Gemini superado. Espera un momento.';
+        sse_error($msg); return;
+    }
     sse_done();
 }
 
