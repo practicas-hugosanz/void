@@ -25,7 +25,8 @@ $row = $db->prepare("SELECT api_key, api_provider, api_model FROM users WHERE id
 $row->execute([$user['id']]);
 $settings = $row->fetch();
 
-$apiKey   = $settings['api_key']   ?? '';
+// Accept key from server DB, or from client header (direct/guest mode)
+$apiKey   = $settings['api_key'] ?: ($_SERVER['HTTP_X_API_KEY'] ?? '');
 $provider = body()['provider']     ?? ($settings['api_provider'] ?? 'gemini');
 $model    = body()['model']        ?? ($settings['api_model']    ?? '');
 
@@ -66,7 +67,7 @@ if ((body()['action'] ?? '') === 'title') {
 $messages = body()['messages']     ?? [];
 $doStream = body()['stream']       ?? true;
 
-if (!$apiKey)        json_err('No tienes una API Key configurada. Añádela en Ajustes.', 402);
+if (!$apiKey)        json_err('No tienes una API Key configurada. Añádela en Ajustes o pásala en X-Api-Key.', 402);
 if (empty($messages)) json_err('Sin mensajes');
 
 $defaultModels = [

@@ -4,8 +4,8 @@
  * Features: Multi-conversation history, sidebar collapse, Gemini + OpenAI support.
  */
 
-// ── API base path — adjust if your PHP files live in a subdirectory ──────────
-const API_BASE = 'https://voidai.up.railway.app';
+// ── API base path — relative so it works on any domain/server ────────────────
+const API_BASE = window.location.origin;
 
 const API = {
   auth:      API_BASE + '/api/auth.php',
@@ -19,10 +19,11 @@ const API = {
 // ─── Available models per provider ───────────────────────────────────────────
 const MODELS = {
   gemini: [
-    { id: 'gemini-2.0-flash',         label: 'Gemini 2.0 Flash',       tag: 'rápido' },
-    { id: 'gemini-2.0-flash-lite',    label: 'Gemini 2.0 Flash Lite',  tag: 'ligero' },
-    { id: 'gemini-1.5-pro',           label: 'Gemini 1.5 Pro',         tag: 'potente' },
-    { id: 'gemini-1.5-flash',         label: 'Gemini 1.5 Flash',       tag: 'equilibrado' },
+    { id: 'gemini-2.5-flash-preview-05-20', label: 'Gemini 2.5 Flash',      tag: 'nuevo' },
+    { id: 'gemini-2.0-flash',               label: 'Gemini 2.0 Flash',       tag: 'rápido' },
+    { id: 'gemini-2.0-flash-lite',          label: 'Gemini 2.0 Flash Lite',  tag: 'ligero' },
+    { id: 'gemini-1.5-pro',                 label: 'Gemini 1.5 Pro',         tag: 'potente' },
+    { id: 'gemini-1.5-flash',               label: 'Gemini 1.5 Flash',       tag: 'equilibrado' },
   ],
   openai: [
     { id: 'gpt-4o',                   label: 'GPT-4o',                 tag: 'flagship' },

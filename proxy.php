@@ -13,7 +13,7 @@
  * When stream=false           → { ok: true, data: { text: "..." } }
  */
 
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/includes/auth.php';
 cors();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') json_err('Método no permitido', 405);
