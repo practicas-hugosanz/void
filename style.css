@@ -780,15 +780,7 @@ body::before {
 /* ========================================
    CHAT PAGE
    ======================================== */
-/* Use dvh (dynamic viewport height) for mobile browsers where 100vh includes address bar.
-   Falls back to 100vh for older browsers. */
-#page-chat {
-  display: none;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-  position: relative;
-}
+#page-chat { display: none; height: 100vh; overflow: hidden; position: relative; }
 #page-chat.active { display: flex; }
 
 /* SIDEBAR */
@@ -877,11 +869,10 @@ body::before {
   background: var(--bg3); border: 1px solid var(--border2);
   border-radius: 100px; padding: 7px 14px;
   font-family: var(--font-head); font-size: 0.78rem; font-weight: 700; color: var(--text);
-  flex-shrink: 1; min-width: 0;
-  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  min-width: 0; overflow: hidden; white-space: nowrap;
 }
 .model-dot { width: 6px; height: 6px; min-width: 6px; min-height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
-#model-status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+#model-status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .model-dot.active { background: #28c840; animation: blink 2s ease-in-out infinite; }
 .chat-topbar-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .topbar-action {
@@ -1185,8 +1176,6 @@ body::before {
   .l-nav-links { display: none; }
   .l-nav-actions { display: none; }
   .l-nav-hamburger { display: flex; }
-  /* Chat topbar safe area on tablet */
-  .chat-topbar { padding-top: max(16px, env(safe-area-inset-top)); }
 
   /* Hero */
   .l-hero { padding: 100px 24px 80px; }
@@ -1211,8 +1200,6 @@ body::before {
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 50;
     will-change: transform;
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
   }
   .chat-sidebar.open {
     transform: translateX(0);
@@ -1304,27 +1291,13 @@ body::before {
   .auth-back { top: 16px; left: 16px; }
 
   /* Chat page */
-  .chat-topbar { padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top)); }
-  .chat-input-area {
-    padding: 12px 16px;
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
-  }
-  .chat-messages { padding: 16px 0; }
-  .chat-messages-inner { padding: 0 14px; gap: 14px; }
-  .msg-bubble { padding: 10px 13px; font-size: 0.85rem; }
+  .chat-topbar { padding: 12px 16px; }
+  .chat-input-area { padding: 14px 16px 18px; }
+  .chat-messages { padding: 20px 0; }
+  .chat-messages-inner { padding: 0 16px; gap: 16px; }
+  .msg-bubble { padding: 12px 14px; font-size: 0.85rem; }
   .msg-content { max-width: 88%; }
-  /* Larger tap targets for send/attach buttons on mobile */
-  .chat-send-btn { width: 40px; height: 40px; min-width: 40px; border-radius: 10px; }
-  .chat-attach-btn { width: 40px; height: 40px; min-width: 40px; }
-  /* Slightly smaller textarea max-height on small screens */
-  #chat-input { max-height: 100px; font-size: 0.9rem; }
-  /* Chat sidebar safe area */
-  .chat-sidebar { padding-top: env(safe-area-inset-top); }
-  /* Sidebar backdrop also covers safe areas */
-  .sidebar-backdrop { top: 0; }
-  /* Input box more compact */
-  .chat-input-box { border-radius: 14px; padding: 2px; }
-  .chat-footer-note { font-size: 0.68rem; margin-top: 7px; }
+  .chat-send-btn { width: 36px; height: 36px; }
 
   /* Modals full-screen on mobile */
   .modal-overlay { align-items: flex-end; }
@@ -1338,33 +1311,7 @@ body::before {
 }
 
 
-/* ---- Extra small screens: iPhone SE (375px) and below ---- */
-@media (max-width: 390px) {
-  .chat-topbar { padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top)); }
-  .chat-input-area { padding: 10px 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
-  .chat-messages-inner { padding: 0 12px; gap: 12px; }
-  .chat-welcome { padding: 32px 16px 20px; }
-  .chat-welcome h2 { font-size: 1.1rem; }
-  .msg-bubble.user { font-size: 0.84rem; }
-  #chat-input { font-size: 0.88rem; padding: 10px 6px; }
-  .chat-send-btn { width: 38px; height: 38px; min-width: 38px; }
-  .chat-attach-btn { width: 36px; height: 36px; min-width: 36px; }
-}
-
-/* ---- iOS Safari: prevent zoom on input focus ---- */
-@supports (-webkit-touch-callout: none) {
-  #chat-input { font-size: max(0.92rem, 16px); }
-}
-
-/* ---- Ensure chat fills correctly when browser chrome shows/hides (iOS scroll) ---- */
-@media (max-width: 900px) {
-  #page-chat {
-    /* svh = smallest viewport height (with browser chrome visible) */
-    height: 100svh;
-  }
-}
-
-
+/* ===== SIDEBAR COLLAPSE (DESKTOP) ===== */
 @media (min-width: 901px) {
 .chat-sidebar {
   transition: width 0.3s cubic-bezier(0.4,0,0.2,1), min-width 0.3s cubic-bezier(0.4,0,0.2,1);
