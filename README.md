@@ -1,6 +1,6 @@
 # VOID — Documentación técnica
 
-VOID es una interfaz de chat con IA minimalista y de alto rendimiento, con autenticación de usuarios, sistema de whitelist, historial de conversaciones persistente y soporte para múltiples proveedores e IA y modelos.
+VOID es una interfaz de chat con IA minimalista y de alto rendimiento, con autenticación de usuarios, sistema de whitelist, historial de conversaciones persistente y soporte para múltiples proveedores de IA y modelos.
 
 ---
 
@@ -19,7 +19,7 @@ void/
 │   ├── user.php            ← Perfil, avatar, API key, proveedor, modelo
 │   ├── whitelist.php       ← Solicitudes, aprobación y conteo de whitelist
 │   ├── conversations.php   ← Historial de conversaciones
-│   └── proxy.php           ← Proxy IA (Gemini / OpenAI) — la key nunca sale del servidor
+│   └── proxy.php           ← Proxy IA (Gemini / OpenAI / Anthropic) — la key nunca sale del servidor
 ├── includes/
 │   ├── db.php              ← Conexión SQLite + migraciones automáticas
 │   └── auth.php            ← Sesiones, helpers JSON, CORS
@@ -72,8 +72,13 @@ chmod 644 api/*.php includes/*.php
 | Variable | Descripción | Valor por defecto |
 |---|---|---|
 | `VOID_ADMIN_SECRET` | Clave para acciones de admin en la whitelist | `void-admin-2025-secret` |
+| `GEMINI_API_KEY` | API key de Google Gemini (activo) | — |
+| `OPENAI_API_KEY` | API key de OpenAI (próximamente) | — |
+| `ANTHROPIC_API_KEY` | API key de Anthropic (próximamente) | — |
 
-> ⚠️ **Cambia `VOID_ADMIN_SECRET` en producción.** Úsala en la cabecera `X-Admin-Secret` para aprobar/rechazar solicitudes de whitelist.
+> ⚠️ **Cambia `VOID_ADMIN_SECRET` en producción.**
+
+El proveedor activo se determina automáticamente según qué variable de entorno esté configurada, en este orden de prioridad: `GEMINI_API_KEY` → `OPENAI_API_KEY` → `ANTHROPIC_API_KEY`.
 
 ### 4. Primer acceso
 
@@ -83,12 +88,12 @@ Abre tu dominio. La base de datos SQLite se crea automáticamente en la primera 
 
 ## Despliegue con Docker
 
-El proyecto incluye un `Dockerfile` listo para Railway, Render, Fly.io u otros servicios de contenedores.
-
 ```bash
-# Build local
 docker build -t void .
-docker run -p 8080:8080 -e VOID_ADMIN_SECRET=tu-clave-secreta void
+docker run -p 8080:8080 \
+  -e VOID_ADMIN_SECRET=tu-clave-secreta \
+  -e GEMINI_API_KEY=tu-key-gemini \
+  void
 ```
 
 El servidor escucha en el puerto `8080`. Los servicios de hosting gestionan el SSL y el dominio externamente.
@@ -96,8 +101,6 @@ El servidor escucha en el puerto `8080`. Los servicios de hosting gestionan el S
 ---
 
 ## Sistema de Whitelist
-
-El acceso a VOID está limitado por un sistema de whitelist. Los usuarios solicitan acceso y un administrador los aprueba manualmente.
 
 ### Flujo
 
@@ -143,22 +146,24 @@ El contador de la landing (`/api/whitelist.php?action=count`) es público y mues
 
 ---
 
-## Proveedores e IA y modelos disponibles
+## Proveedores de IA y modelos disponibles
 
-Los usuarios configuran su proveedor, modelo y API key desde los ajustes del chat. La key se guarda cifrada en el servidor y **nunca se expone al navegador**.
+La API key se configura como variable de entorno en el servidor. **Nunca se expone al navegador.**
 
-### Google Gemini
+### Google Gemini ✅ Activo
 
 | Modelo | ID | Característica |
 |---|---|---|
-| Gemini 2.0 Flash | `gemini-2.0-flash` | Rápido, por defecto |
+| Gemini 2.5 Flash | `gemini-2.5-flash` | Recomendado, por defecto |
+| Gemini 2.5 Pro | `gemini-2.5-pro` | Máxima capacidad |
+| Gemini 2.0 Flash | `gemini-2.0-flash` | Rápido |
 | Gemini 2.0 Flash Lite | `gemini-2.0-flash-lite` | Ligero, bajo coste |
-| Gemini 1.5 Pro | `gemini-1.5-pro` | Máxima capacidad |
-| Gemini 1.5 Flash | `gemini-1.5-flash` | Equilibrado |
 
 Obtén tu API key en [Google AI Studio](https://aistudio.google.com/apikey).
 
-### OpenAI
+Gemini incluye **fallback automático entre modelos**: si el modelo preferido devuelve error 429 (cuota agotada), el proxy reintenta automáticamente con los modelos siguientes en orden de prioridad.
+
+### OpenAI 🔜 Próximamente
 
 | Modelo | ID | Característica |
 |---|---|---|
@@ -169,6 +174,48 @@ Obtén tu API key en [Google AI Studio](https://aistudio.google.com/apikey).
 | o1 Mini | `o1-mini` | Razonamiento avanzado |
 
 Obtén tu API key en [OpenAI Platform](https://platform.openai.com/api-keys).
+
+> El botón está desactivado en la UI hasta que se configure `OPENAI_API_KEY`. Ver sección **Activar OpenAI o Anthropic**.
+
+### Anthropic 🔜 Próximamente
+
+| Modelo | ID | Característica |
+|---|---|---|
+| Claude Opus 4.6 | `claude-opus-4-6` | Máxima capacidad |
+| Claude Sonnet 4.6 | `claude-sonnet-4-6` | Equilibrado, por defecto |
+| Claude Haiku 4.5 | `claude-haiku-4-5-20251001` | Rápido y ligero |
+
+Obtén tu API key en [Anthropic Console](https://console.anthropic.com/).
+
+> El botón está desactivado en la UI hasta que se configure `ANTHROPIC_API_KEY`. Ver sección **Activar OpenAI o Anthropic**.
+
+---
+
+## Activar OpenAI o Anthropic
+
+Cuando tengas las API keys, sigue estos pasos:
+
+**1. Configura la variable de entorno en tu servidor:**
+```bash
+# Railway / Render / Fly.io → añade en el panel de entorno:
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**2. Activa el botón en `index.html`** — busca el botón correspondiente y elimina `disabled`, la clase `provider-soon`, el atributo `title` y el `<span class="soon-badge">`:
+
+```html
+<!-- Antes (desactivado) -->
+<button class="provider-btn provider-soon" data-provider="openai" disabled title="Próximamente">
+  <span class="provider-icon">⬡</span> OpenAI
+  <span class="soon-badge">Soon</span>
+</button>
+
+<!-- Después (activo) -->
+<button class="provider-btn" data-provider="openai" onclick="app.selectProvider('openai')">
+  <span class="provider-icon">⬡</span> OpenAI
+</button>
+```
 
 ---
 
@@ -189,8 +236,8 @@ Obtén tu API key en [OpenAI Platform](https://platform.openai.com/api-keys).
 |---|---|---|---|
 | `PUT` | `profile` | `{name, email, password_current?, password_new?, password_confirm?}` | Actualizar perfil |
 | `PUT` | `avatar` | `{avatar: "data:image/..."}` | Subir avatar en base64 (máx. 2 MB) |
-| `PUT` | `settings` | `{api_key, api_provider, api_model}` | Guardar proveedor, modelo y API key |
-| `GET` | `settings` | — | Ver ajustes (key enmascarada como `***`) |
+| `PUT` | `settings` | `{api_provider, api_model}` | Guardar proveedor y modelo preferidos |
+| `GET` | `settings` | — | Ver ajustes actuales |
 
 ### Whitelist — `/api/whitelist.php`
 
@@ -216,9 +263,18 @@ Obtén tu API key en [OpenAI Platform](https://platform.openai.com/api-keys).
 
 | Método | Body | Descripción |
 |---|---|---|
-| `POST` | `{messages: [...], provider: "openai"\|"gemini", model: "gpt-4o"\|...}` | Enviar mensajes al modelo configurado |
+| `POST` | `{messages, provider, model, stream?}` | Chat con el modelo configurado |
+| `POST` | `{action: "title", messages, provider, model}` | Generar título para una conversación |
 
-El proxy recupera la API key del servidor, nunca del cliente. Los mensajes siguen el formato estándar de OpenAI (`role` + `content`); el proxy convierte automáticamente al formato de Gemini si es necesario.
+El proxy recupera la API key de las variables de entorno del servidor, nunca del cliente. Los mensajes siguen el formato estándar (`role` + `content`); el proxy convierte automáticamente al formato nativo de cada proveedor.
+
+**Cabeceras de respuesta del proxy (modo streaming):**
+
+| Cabecera | Descripción |
+|---|---|
+| `X-VOID-Provider` | Proveedor usado en la petición |
+| `X-VOID-Model` | Modelo usado en la petición |
+| `X-VOID-HasKey` | `yes` si hay key configurada en servidor |
 
 ---
 
@@ -236,9 +292,8 @@ SQLite en `data/void.sqlite`. Esquema gestionado por migraciones automáticas en
 | `email` | TEXT UNIQUE | Email (case-insensitive) |
 | `password` | TEXT | Hash bcrypt |
 | `avatar` | TEXT | Data URL base64 o NULL |
-| `api_key` | TEXT | API key del proveedor (guardada en servidor) |
-| `api_provider` | TEXT | `gemini` o `openai` (por defecto `gemini`) |
-| `api_model` | TEXT | Modelo seleccionado (por defecto del proveedor) |
+| `api_provider` | TEXT | Proveedor preferido (`gemini`, `openai`, `anthropic`) |
+| `api_model` | TEXT | Modelo seleccionado |
 | `created_at` | TEXT | Fecha de creación |
 
 **`whitelist`**
@@ -265,7 +320,7 @@ SQLite en `data/void.sqlite`. Esquema gestionado por migraciones automáticas en
 |---|---|---|
 | `id` | TEXT PK | UUID generado en cliente |
 | `user_id` | INTEGER FK | Referencia a `users.id` |
-| `title` | TEXT | Título de la conversación |
+| `title` | TEXT | Título generado automáticamente |
 | `messages` | TEXT | JSON con el historial completo |
 | `created_at` | TEXT | Fecha de creación |
 | `updated_at` | TEXT | Última modificación |
@@ -278,7 +333,7 @@ SQLite en `data/void.sqlite`. Esquema gestionado por migraciones automáticas en
 |---|---|
 | Contraseñas | `password_hash()` con bcrypt — nunca en texto plano |
 | Sesiones | Token de 64 chars aleatorio, cookie `HttpOnly` + `SameSite=Lax`, TTL 30 días |
-| API Keys | Guardadas en BD, **nunca enviadas al navegador** — el proxy las inyecta server-side |
+| API Keys | Guardadas como variables de entorno del servidor, **nunca enviadas al navegador** |
 | SQL Injection | Todas las queries usan PDO prepared statements |
 | Admin | Cabecera `X-Admin-Secret` con `hash_equals()` para evitar timing attacks |
 | Datos sensibles | `/data/` e `/includes/` bloqueados vía `.htaccess` y Nginx |
@@ -286,9 +341,31 @@ SQLite en `data/void.sqlite`. Esquema gestionado por migraciones automáticas en
 
 ---
 
-## Configuración con Nginx
+## Compatibilidad móvil
 
-Si usas Nginx en lugar de Apache, añade esto a tu bloque `server {}`:
+VOID está optimizado para móvil en todos los breakpoints:
+
+| Breakpoint | Comportamiento |
+|---|---|
+| `> 900px` | Layout completo con sidebar colapsable |
+| `≤ 900px` | Sidebar deslizante con backdrop, topbar adaptado |
+| `≤ 600px` | Layout compacto, modales en bottom sheet, botones táctiles |
+| `≤ 390px` | Ajustes adicionales para iPhone SE y pantallas pequeñas |
+
+**Soporte iOS específico:**
+- `viewport-fit=cover` + `env(safe-area-inset-*)` para respetar el notch y la barra home
+- `height: 100dvh` en el chat para evitar que la barra de Safari corte el fondo
+- `height: 100svh` como fallback cuando la barra del navegador está visible
+- `font-size: max(0.92rem, 16px)` en el textarea para evitar el zoom automático al hacer foco
+
+**Topbar del chat:**
+- `gap` garantizado entre el selector de modelo y los botones de acción
+- `.chat-model-selector` se recorta con ellipsis si la pantalla es muy estrecha
+- `.model-dot` tiene dimensiones fijas para no deformarse en ningún tamaño de pantalla
+
+---
+
+## Configuración con Nginx
 
 ```nginx
 location /api/ {
