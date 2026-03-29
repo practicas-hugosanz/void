@@ -212,23 +212,35 @@ function stream_anthropic(string $key, array $messages, string $model): void {
     }
     $body = ['model'=>$model,'max_tokens'=>4096,'stream'=>true,'messages'=>$history];
     if ($system) $body['system'] = $system;
+
+    $sentDone = false;
+    $rawBuf   = '';
+
     $ch = curl_init('https://api.anthropic.com/v1/messages');
     curl_setopt_array($ch, [
         CURLOPT_POST          => true,
         CURLOPT_POSTFIELDS    => json_encode($body),
         CURLOPT_HTTPHEADER    => ['Content-Type: application/json','x-api-key: '.$key,'anthropic-version: 2023-06-01'],
         CURLOPT_TIMEOUT       => 120,
-        CURLOPT_WRITEFUNCTION => function($ch, $data) {
+        CURLOPT_WRITEFUNCTION => function($ch, $data) use (&$sentDone, &$rawBuf) {
+            $rawBuf .= $data;
             foreach (explode("\n", $data) as $line) {
                 $line = trim($line);
                 if (!str_starts_with($line, 'data: ')) continue;
                 $obj = json_decode(substr($line, 6), true);
                 if (!$obj) continue;
+                // Error devuelto dentro del stream (p.ej. model not found, overloaded)
+                if (($obj['type']??'') === 'error') {
+                    $msg = $obj['error']['message'] ?? 'Error de Anthropic';
+                    sse_error($msg); $sentDone = true; return strlen($data);
+                }
                 if (($obj['type']??'') === 'content_block_delta') {
                     $chunk = $obj['delta']['text'] ?? '';
                     if ($chunk !== '') sse_chunk($chunk);
                 }
-                if (($obj['type']??'') === 'message_stop') sse_done();
+                if (($obj['type']??'') === 'message_stop') {
+                    sse_done(); $sentDone = true;
+                }
             }
             return strlen($data);
         },
@@ -236,14 +248,16 @@ function stream_anthropic(string $key, array $messages, string $model): void {
     $ok = curl_exec($ch); $err = curl_error($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
+
     if (!$ok || $err) { sse_error('Error de red con Anthropic: '.($err?:'sin respuesta')); return; }
-    if ($httpCode >= 400) {
-        if ($httpCode === 401) sse_error('API Key de Anthropic inválida.');
-        elseif ($httpCode === 429) sse_error('Límite de uso de Anthropic superado.');
-        else sse_error('Error HTTP '.$httpCode.' de Anthropic.');
-        return;
+    if ($httpCode >= 400 && !$sentDone) {
+        $errBody = json_decode($rawBuf, true);
+        $msg = $errBody['error']['message'] ?? 'Error HTTP '.$httpCode.' de Anthropic';
+        if ($httpCode === 401) $msg = 'API Key de Anthropic inválida.';
+        if ($httpCode === 429) $msg = 'Límite de uso de Anthropic superado.';
+        sse_error($msg); return;
     }
-    sse_done();
+    if (!$sentDone) sse_done();
 }
 
 function call_anthropic(string $key, array $messages, string $model = 'claude-sonnet-4-6'): string {
