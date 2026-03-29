@@ -32,6 +32,7 @@ switch ($action) {
         foreach ($rows as &$r) {
             $r['messages'] = json_decode($r['messages'], true) ?: [];
         }
+        unset($r); // evitar referencia colgante tras el foreach by-reference
         json_ok($rows);
     }
 

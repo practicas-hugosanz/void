@@ -213,16 +213,10 @@ const app = {
   },
 
   switchAuthTab(mode) {
-    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    // Solo existe el formulario de login; el registro pasa por la whitelist
     document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
-    const tab = document.getElementById('tab-' + mode);
-    if (tab) tab.classList.add('active');
-    const form = document.getElementById('form-' + mode);
+    const form = document.getElementById('form-' + mode) || document.getElementById('form-login');
     if (form) form.classList.add('active');
-    else {
-      const fallback = document.getElementById('form-login');
-      if (fallback) fallback.classList.add('active');
-    }
   },
 
   showToast(msg, type) {
@@ -234,8 +228,8 @@ const app = {
     } else if (type === 'error' || msg.includes('⚠️') || msg.toLowerCase().includes('incorrecto') || msg.toLowerCase().includes('registrado') || msg.toLowerCase().includes('supera')) {
       icon = 'ico-warn'; color = '#ff6b6b';
     }
-    // Strip legacy emojis
-    const cleanMsg = msg.replace(/[⚠️✦]/g, '').trim();
+    // Strip legacy emojis and escape to prevent XSS (msg can originate from URL params)
+    const cleanMsg = this.escapeHtml(msg.replace(/[⚠️✦]/g, '').trim());
     t.innerHTML = `<svg style="width:15px;height:15px;flex-shrink:0;color:${color}"><use href="#${icon}"/></svg><span>${cleanMsg}</span>`;
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3000);
@@ -244,22 +238,6 @@ const app = {
   // ==========================================
   // AUTHENTICATION
   // ==========================================
-  async handleRegister(e) {
-    e.preventDefault();
-    const name = document.getElementById('reg-name').value.trim();
-    const email = document.getElementById('reg-email').value.trim();
-    const pass = document.getElementById('reg-password').value;
-    const btn = e.target.querySelector('[type=submit]');
-    if (btn) btn.disabled = true;
-    const res = await apiFetch(API.auth + '?action=register', {
-      method: 'POST',
-      body: JSON.stringify({ name, email, password: pass }),
-    });
-    if (btn) btn.disabled = false;
-    if (!res.ok) { this.showToast('⚠️ ' + res.error); return; }
-    await this._afterLogin(res.data);
-  },
-
   async handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('login-email').value.trim();
@@ -297,12 +275,12 @@ const app = {
   },
 
   loginWithGoogle() {
-  window.location.href = `${API_BASE}/api/oauth_google.php?action=redirect`;
-},
+    window.location.href = `${API_BASE}/api/oauth_google.php?action=redirect`;
+  },
 
   loginWithGithub() {
-  window.location.href = `${API_BASE}/api/oauth_github.php?action=redirect`;
-},
+    window.location.href = `${API_BASE}/api/oauth_github.php?action=redirect`;
+  },
 
   // ==========================================
   // SIDEBAR COLLAPSE
@@ -1044,21 +1022,6 @@ const app = {
     document.getElementById('chat-attachments').innerHTML = '';
   },
 
-  buildFileContext() {
-    // Builds a text block injected into the prompt describing attached files
-    if (!this.pendingFiles.length) return '';
-    let ctx = '\n\n[ARCHIVOS ADJUNTOS]\n';
-    this.pendingFiles.forEach(f => {
-      if (f.isImage) {
-        ctx += `• ${f.name} (imagen)\n`;
-      } else {
-        const preview = f.content ? f.content.slice(0, 8000) : '';
-        ctx += `• ${f.name}:\n\`\`\`\n${preview}${f.content && f.content.length > 8000 ? '\n...[truncado]' : ''}\n\`\`\`\n`;
-      }
-    });
-    return ctx;
-  },
-
   appendMessageWithFiles(role, text, files) {
     const inner = document.getElementById('chat-messages-inner');
     const isAI = role === 'ai' || role === 'assistant';
@@ -1091,8 +1054,6 @@ const app = {
     this.scrollToBottom();
   },
 
-
-
   escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   },
@@ -1100,46 +1061,6 @@ const app = {
   // ==========================================
   // AI ENGINES
   // ==========================================
-  // ==========================================
-  // SERVER-SIDE AI PROXY (API key stored in DB)
-  // ==========================================
-  async fetchViaProxy(text, files = []) {
-    const SYSTEM = 'Eres VOID, un asistente de IA serio, preciso y directo. Tu nombre está inspirado en un agujero negro — absorbes cualquier pregunta y devuelves respuestas claras y precisas. Si el usuario te pregunta quién eres o cómo te llamas, responde que eres VOID. Responde siempre en el idioma del usuario. Cuando el usuario adjunte archivos o imágenes, analízalos en detalle y responde sobre su contenido.';
-
-    // Build messages array in OpenAI format (proxy handles Gemini conversion)
-    const history = this.chatHistory.slice(-10).map(m => ({
-      role: m.role === 'assistant' ? 'assistant' : 'user',
-      content: m.content,
-    }));
-
-    // Add file content to the latest user message
-    const lastMsg = history[history.length - 1];
-    if (lastMsg && files && files.length) {
-      let extra = '\n\n[ARCHIVOS ADJUNTOS]\n';
-      files.forEach(f => {
-        if (!f.isImage) {
-          extra += `\n• ${f.name}:\n\`\`\`\n${(f.content || '').slice(0, 6000)}\n\`\`\`\n`;
-        } else {
-          extra += `\n• Imagen adjunta: ${f.name}\n`;
-        }
-      });
-      lastMsg.content += extra;
-    }
-
-    const messages = [{ role: 'system', content: SYSTEM }, ...history];
-
-    try {
-      const res = await apiFetch(API.proxy, {
-        method: 'POST',
-        body: JSON.stringify({ messages, provider: this.apiProvider, model: this.apiModel || defaultModel(this.apiProvider) }),
-      });
-      if (!res.ok) return '⚠️ ' + (res.error || 'Error del servidor') + ' ✦';
-      return res.data.text || 'Sin respuesta del núcleo. ✦';
-    } catch (err) {
-      console.error(err);
-      return '⚠️ Error de conexión con el servidor. ✦';
-    }
-  },
 
   async fetchMockAI(text) {
     return new Promise(resolve => {
@@ -1167,92 +1088,6 @@ const app = {
       }
     });
     return ctx;
-  },
-
-  async fetchGeminiAI(text, files = []) {
-    // Routed through PHP proxy — el servidor gestiona la API key.
-    try {
-      const history = this.chatHistory.slice(-10, -1).map(m => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content,
-      }));
-
-      // Build current user message content (text + file context)
-      let userContent = text || '';
-      files.forEach(f => {
-        if (f.content) userContent += `\n[Contenido de ${f.name}]:\n${f.content.slice(0, 8000)}`;
-      });
-
-      const messages = [
-        ...history,
-        { role: 'user', content: userContent || '(Sin texto)' },
-      ];
-
-      const geminiModel = this.apiModel || 'gemini-2.0-flash';
-
-      const res = await fetch(API.proxy, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages,
-          provider: 'gemini',
-          model: geminiModel,
-          stream: false,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg = data.error || 'HTTP ' + res.status;
-        if (res.status === 429) {
-          return '⚠️ Límite de uso alcanzado en Gemini. Espera unos minutos o activa facturación en <a href="https://aistudio.google.com" target="_blank">Google AI Studio</a>. ✦';
-        }
-        return '⚠️ Error de Gemini: ' + msg + '. Verifica tu API Key. ✦';
-      }
-      return data.data?.text || 'Sin respuesta del núcleo. ✦';
-    } catch (err) {
-      console.error(err);
-      return '⚠️ Error de conexión con Gemini. Verifica tu API Key en ajustes. ✦';
-    }
-  },
-
-  async fetchOpenAI(text, files = []) {
-    const SYSTEM = 'Eres VOID, un asistente de IA serio, preciso y directo. Tu nombre está inspirado en un agujero negro — absorbes cualquier pregunta y devuelves respuestas claras y precisas. Si el usuario te pregunta quién eres o cómo te llamas, responde que eres VOID. Responde siempre en el idioma del usuario. Cuando el usuario adjunte archivos o imágenes, analízalos en detalle y responde sobre su contenido.';
-    try {
-      const history = this.chatHistory.slice(-10).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
-
-      // Build content array for GPT-4o multimodal
-      const content = [];
-      if (text) content.push({ type: 'text', text });
-      files.forEach(f => {
-        if (f.isImage && f.base64) {
-          content.push({ type: 'image_url', image_url: { url: `data:${f.mimeType};base64,${f.base64}`, detail: 'auto' } });
-        } else if (f.content) {
-          content.push({ type: 'text', text: `\n[Contenido de ${f.name}]:\n${f.content.slice(0, 8000)}` });
-        }
-      });
-      if (!content.length) content.push({ type: 'text', text: '(Sin texto — analiza los archivos adjuntos)' });
-
-      // Replace last history entry with multimodal content if there are files
-      const messages = [{ role: 'system', content: SYSTEM }, ...history.slice(0, -1)];
-      messages.push({ role: 'user', content: files.length ? content : (text || '') });
-
-      const res = await fetch(API.proxy, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, provider: 'openai', model: this.apiModel || 'gpt-4o', stream: false }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        return '⚠️ Error de OpenAI: ' + (data.error || 'HTTP ' + res.status) + '. ✦';
-      }
-      return data.data?.text || 'Sin respuesta del núcleo. ✦';
-    } catch (err) {
-      console.error(err);
-      return '⚠️ Error de conexión con OpenAI. Verifica tu API Key en ajustes. ✦';
-    }
   },
 
   // ==========================================
@@ -1633,7 +1468,7 @@ const app = {
   },
 
   initStatCounters() {
-    const cells = document.querySelectorAll('[data-count]');
+    const cells = document.querySelectorAll('[data-target]');
     // Whitelist bar — cargar dato real desde la API
     const bar        = document.querySelector('.l-whitelist-bar-fill');
     const labelSpan  = document.querySelector('.l-whitelist-bar-labels span:first-child');
@@ -1682,8 +1517,8 @@ const app = {
       entries.forEach(e => {
         if (!e.isIntersecting) return;
         const el = e.target;
+        observer.unobserve(el);
         const target = parseInt(el.dataset.target);
-        const suffix = el.textContent.replace(/[0-9]/g, '');
         let current = 0;
         const step = Math.ceil(target / 60);
         const t = setInterval(() => {
@@ -1691,7 +1526,6 @@ const app = {
           el.textContent = current + (target >= 100 ? '%' : 'K');
           if (current >= target) clearInterval(t);
         }, 24);
-        observer.unobserve(el);
       });
     }, { threshold: 0.5 });
     cells.forEach(c => observer.observe(c));
@@ -1706,7 +1540,6 @@ const app = {
       });
     });
   },
-
 
   // ==========================================
   // WHITELIST MODAL (usuario)
@@ -1764,7 +1597,6 @@ const app = {
       this.showToast('⚠️ ' + res.error);
     }
   },
-
 
   initMarquee() {
     const track = document.getElementById('marquee-track');

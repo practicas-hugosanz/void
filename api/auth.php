@@ -2,10 +2,13 @@
 /**
  * VOID API — /api/auth.php
  *
- * POST /api/auth.php?action=register
  * POST /api/auth.php?action=login
  * POST /api/auth.php?action=logout
  * GET  /api/auth.php?action=me
+ *
+ * El registro de usuarios no se expone aquí; se gestiona mediante la
+ * whitelist: el administrador aprueba la solicitud y la cuenta se crea
+ * automáticamente en admin.php / api/whitelist.php?action=approve.
  */
 
 require_once __DIR__ . '/../includes/auth.php';
@@ -32,36 +35,6 @@ function check_whitelist(string $email): void {
 }
 
 switch ($action) {
-
-    // ── REGISTER ─────────────────────────────────────────────────────────────
-    case 'register': {
-        $name  = trim(require_field('name',  'Nombre'));
-        $email = strtolower(trim(require_field('email', 'Email')));
-        $pass  = require_field('password', 'Contraseña');
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL))
-            json_err('Email inválido');
-        if (strlen($pass) < 6)
-            json_err('La contraseña debe tener al menos 6 caracteres');
-
-        check_whitelist($email);
-
-        $db  = get_db();
-        $chk = $db->prepare("SELECT id FROM users WHERE email = ?");
-        $chk->execute([$email]);
-        if ($chk->fetch()) json_err('El email ya está registrado');
-
-        $hash = password_hash($pass, PASSWORD_BCRYPT);
-        $stmt = $db->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?) RETURNING id");
-        $stmt->execute([$name, $email, $hash]);
-        $userId = (int) $stmt->fetchColumn();
-
-        $token = create_session($userId);
-        json_ok([
-            'token' => $token,
-            'user'  => ['id' => $userId, 'name' => $name, 'email' => $email, 'avatar' => null, 'api_provider' => 'gemini']
-        ]);
-    }
 
     // ── LOGIN ─────────────────────────────────────────────────────────────────
     case 'login': {

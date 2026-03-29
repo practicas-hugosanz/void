@@ -37,6 +37,10 @@ function get_db(): PDO {
 }
 
 function migrate(PDO $pdo): void {
+    static $ran = false;
+    if ($ran) return;
+    $ran = true;
+
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS users (
             id           SERIAL PRIMARY KEY,

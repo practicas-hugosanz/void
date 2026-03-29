@@ -80,7 +80,7 @@ if ((body()['action'] ?? '') === 'title') {
         $content = is_string($m['content']) ? $m['content'] : '';
         $excerpt .= "$role: " . mb_substr($content, 0, 200) . "\n";
     }
-    $dm = ['gemini'=>'gemini-2.5-flash','openai'=>'gpt-4o','anthropic'=>'claude-haiku-4-5'];
+    $dm = ['gemini'=>'gemini-2.5-flash','openai'=>'gpt-4o','anthropic'=>'claude-haiku-4-5-20251001'];
     if (!$model) $model = $dm[$provider] ?? 'gemini-2.5-flash';
 
     $titlePrompt = [['role'=>'user','content'=>
@@ -103,17 +103,10 @@ $doStream = body()['stream']   ?? true;
 if (!$apiKey)         json_err('El servicio no está configurado. Contacta al administrador.', 503);
 if (empty($messages)) json_err('Sin mensajes', 400);
 
-$dm = ['gemini'=>'gemini-2.5-flash','openai'=>'gpt-4o','anthropic'=>'claude-sonnet-4-6-20250514'];
+$dm = ['gemini'=>'gemini-2.5-flash','openai'=>'gpt-4o','anthropic'=>'claude-sonnet-4-6'];
 if (!$model) $model = $dm[$provider] ?? 'gemini-2.5-flash';
 
 if ($doStream) {
-    // Verificar key antes de iniciar SSE (una vez iniciado SSE no podemos devolver JSON de error)
-    if (!$apiKey) {
-        http_response_code(402);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok' => false, 'error' => 'El servicio no está configurado. Contacta al administrador.']);
-        exit;
-    }
     while (ob_get_level()) ob_end_clean();
     ini_set('output_buffering', 'off');
     ini_set('zlib.output_compression', false);
@@ -243,12 +236,14 @@ function stream_anthropic(string $key, array $messages, string $model): void {
     $ok = curl_exec($ch); $err = curl_error($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    if (!$ok || $err) sse_error('Error de red con Anthropic: '.($err?:'sin respuesta'));
-    elseif ($httpCode >= 400) {
+    if (!$ok || $err) { sse_error('Error de red con Anthropic: '.($err?:'sin respuesta')); return; }
+    if ($httpCode >= 400) {
         if ($httpCode === 401) sse_error('API Key de Anthropic inválida.');
         elseif ($httpCode === 429) sse_error('Límite de uso de Anthropic superado.');
         else sse_error('Error HTTP '.$httpCode.' de Anthropic.');
+        return;
     }
+    sse_done();
 }
 
 function call_anthropic(string $key, array $messages, string $model = 'claude-sonnet-4-6'): string {
@@ -266,8 +261,14 @@ function call_anthropic(string $key, array $messages, string $model = 'claude-so
         CURLOPT_HTTPHEADER     => ['Content-Type: application/json','x-api-key: '.$key,'anthropic-version: 2023-06-01'],
         CURLOPT_TIMEOUT        => 60,
     ]);
-    $raw = curl_exec($ch); curl_close($ch);
+    $raw = curl_exec($ch); $err = curl_error($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($err || !$raw) json_err('Error de red con Anthropic: '.($err ?: ''), 502);
     $res = json_decode($raw, true);
+    if (!empty($res['error'])) {
+        if ($code === 401) json_err('API Key de Anthropic inválida.', 401);
+        if ($code === 429) json_err('Límite de uso de Anthropic superado.', 429);
+        json_err('Anthropic: '.($res['error']['message'] ?? 'error desconocido'), 502);
+    }
     return $res['content'][0]['text'] ?? '';
 }
 

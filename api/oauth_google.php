@@ -38,7 +38,7 @@ switch ($action) {
     case 'redirect': {
         // Generar state CSRF
         $state = bin2hex(random_bytes(16));
-        setcookie('void_oauth_state', $state, [
+        setcookie('void_oauth_state_google', $state, [
             'expires'  => time() + 600, // 10 min
             'path'     => '/',
             'httponly' => true,
@@ -63,8 +63,8 @@ switch ($action) {
     case 'callback': {
         // Verificar state CSRF
         $receivedState = $_GET['state'] ?? '';
-        $expectedState = $_COOKIE['void_oauth_state'] ?? '';
-        setcookie('void_oauth_state', '', ['expires' => 1, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+        $expectedState = $_COOKIE['void_oauth_state_google'] ?? '';
+        setcookie('void_oauth_state_google', '', ['expires' => 1, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
 
         if (!$receivedState || !hash_equals($expectedState, $receivedState)) {
             redirectWithError('Error de seguridad OAuth (state inválido). Inténtalo de nuevo.');
@@ -165,8 +165,10 @@ function httpPost(string $url, array $data): ?array {
         CURLOPT_TIMEOUT        => 10,
     ]);
     $raw = curl_exec($ch);
+    $err = curl_error($ch);
     curl_close($ch);
-    return $raw ? json_decode($raw, true) : null;
+    if ($err || !$raw) return null;
+    return json_decode($raw, true);
 }
 
 function jwtDecode(string $token): ?array {
@@ -176,5 +178,11 @@ function jwtDecode(string $token): ?array {
     // Fix base64url padding
     $payload = str_replace(['-', '_'], ['+', '/'], $payload);
     $payload = base64_decode(str_pad($payload, strlen($payload) + (4 - strlen($payload) % 4) % 4, '='));
-    return $payload ? json_decode($payload, true) : null;
+    if (!$payload) return null;
+    $data = json_decode($payload, true);
+    if (!$data) return null;
+    // Validar expiración y emisor básicos (la firma la verifica Google al emitir el token server-side)
+    if (isset($data['exp']) && $data['exp'] < time()) return null;
+    if (isset($data['iss']) && !in_array($data['iss'], ['accounts.google.com', 'https://accounts.google.com'], true)) return null;
+    return $data;
 }

@@ -116,20 +116,6 @@ switch ($action) {
         json_ok(['api_provider' => $provider, 'api_model' => $model]);
     }
 
-    // ── GET REAL API KEY (used server-side only, never exposed raw to client) ─
-    // Internal use: called by proxy.php to retrieve the stored key
-    case '_get_key': {
-        // Only allow from same server (no external access)
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-        if (!in_array($ip, ['127.0.0.1', '::1'], true))
-            json_err('Acceso no autorizado', 403);
-
-        $row = $db->prepare("SELECT api_key, api_provider FROM users WHERE id = ?");
-        $row->execute([$user['id']]);
-        $s = $row->fetch();
-        json_ok(['api_key' => $s['api_key'], 'api_provider' => $s['api_provider']]);
-    }
-
     default:
         json_err('Acción desconocida', 404);
 }

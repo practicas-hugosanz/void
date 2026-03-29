@@ -8,6 +8,11 @@ require_once __DIR__ . '/db.php';
 const SESSION_COOKIE = 'void_token';
 const SESSION_TTL    = 60 * 60 * 24 * 30; // 30 days
 
+// Definido aquí para que admin.php y whitelist.php lo compartan sin redefinirlo
+if (!defined('ADMIN_SECRET')) {
+    define('ADMIN_SECRET', getenv('VOID_ADMIN_SECRET') ?: 'void-admin-2025-secret');
+}
+
 // ─── JSON helpers ────────────────────────────────────────────────────────────
 
 function json_ok(mixed $data = null): never {
@@ -78,7 +83,8 @@ function resolve_session(): ?array {
 
     $db = get_db();
     $stmt = $db->prepare("
-        SELECT u.id, u.name, u.email, u.avatar, u.api_key, u.api_provider, u.api_model
+        SELECT u.id, u.name, u.email, u.avatar, u.api_key, u.api_provider, u.api_model,
+               s.last_seen
         FROM sessions s JOIN users u ON u.id = s.user_id
         WHERE s.token = ? AND s.last_seen + INTERVAL '30 days' > NOW()
     ");
@@ -86,9 +92,14 @@ function resolve_session(): ?array {
     $user = $stmt->fetch();
     if (!$user) return null;
 
-    // Refresh last_seen periodically (every hour)
-    $db->prepare("UPDATE sessions SET last_seen = NOW() WHERE token = ?")
-       ->execute([$token]);
+    // Refresh last_seen solo una vez por hora para evitar escrituras innecesarias en cada request
+    $lastSeen = $user['last_seen'] ?? null;
+    $shouldRefresh = !$lastSeen || (time() - strtotime($lastSeen)) > 3600;
+    if ($shouldRefresh) {
+        $db->prepare("UPDATE sessions SET last_seen = NOW() WHERE token = ?")
+           ->execute([$token]);
+    }
+    unset($user['last_seen']); // no exponer este campo fuera de auth
     return $user;
 }
 

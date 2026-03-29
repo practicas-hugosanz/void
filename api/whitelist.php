@@ -15,9 +15,6 @@
 require_once __DIR__ . '/../includes/auth.php';
 cors();
 
-// ─── Admin secret ─────────────────────────────────────────────────────────────
-define('ADMIN_SECRET', getenv('VOID_ADMIN_SECRET') ?: 'void-admin-2025-secret');
-
 function is_admin(): bool {
     $header = $_SERVER['HTTP_X_ADMIN_SECRET'] ?? '';
     return hash_equals(ADMIN_SECRET, $header);

@@ -38,7 +38,7 @@ switch ($action) {
     case 'redirect': {
         // Generar state CSRF
         $state = bin2hex(random_bytes(16));
-        setcookie('void_oauth_state', $state, [
+        setcookie('void_oauth_state_github', $state, [
             'expires'  => time() + 600, // 10 min
             'path'     => '/',
             'httponly' => true,
@@ -60,8 +60,8 @@ switch ($action) {
     case 'callback': {
         // Verificar state CSRF
         $receivedState = $_GET['state'] ?? '';
-        $expectedState = $_COOKIE['void_oauth_state'] ?? '';
-        setcookie('void_oauth_state', '', ['expires' => 1, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+        $expectedState = $_COOKIE['void_oauth_state_github'] ?? '';
+        setcookie('void_oauth_state_github', '', ['expires' => 1, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
 
         if (!$receivedState || !hash_equals($expectedState, $receivedState)) {
             redirectWithError('Error de seguridad OAuth (state inválido). Inténtalo de nuevo.');
@@ -177,9 +177,6 @@ function redirectWithError(string $msg): never {
     exit;
 }
 
-/**
- * POST a GitHub pidiendo respuesta JSON
- */
 function httpPostGithub(string $url, array $data): ?array {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -188,14 +185,16 @@ function httpPostGithub(string $url, array $data): ?array {
         CURLOPT_POSTFIELDS     => http_build_query($data),
         CURLOPT_HTTPHEADER     => [
             'Content-Type: application/x-www-form-urlencoded',
-            'Accept: application/json',              // GitHub devuelve JSON sólo si lo pedimos
+            'Accept: application/json',
             'User-Agent: VOID-App',
         ],
         CURLOPT_TIMEOUT        => 10,
     ]);
     $raw = curl_exec($ch);
+    $err = curl_error($ch);
     curl_close($ch);
-    return $raw ? json_decode($raw, true) : null;
+    if ($err || !$raw) return null;
+    return json_decode($raw, true);
 }
 
 /**
@@ -214,6 +213,8 @@ function httpGetGithub(string $url, string $token): ?array {
         CURLOPT_TIMEOUT        => 10,
     ]);
     $raw = curl_exec($ch);
+    $err = curl_error($ch);
     curl_close($ch);
-    return $raw ? json_decode($raw, true) : null;
+    if ($err || !$raw) return null;
+    return json_decode($raw, true);
 }

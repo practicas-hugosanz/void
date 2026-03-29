@@ -7,8 +7,6 @@
 require_once __DIR__ . '/includes/auth.php';
 cors();
 
-define('ADMIN_SECRET', getenv('VOID_ADMIN_SECRET') ?: 'void-admin-2025-secret');
-
 $secret = $_POST['secret'] ?? ($_COOKIE['void_admin_secret'] ?? '');
 $authed = $secret && hash_equals(ADMIN_SECRET, $secret);
 
@@ -25,27 +23,33 @@ if ($authed && !isset($_COOKIE['void_admin_secret'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $authed) {
     $action = $_POST['action'] ?? '';
     $email  = strtolower(trim($_POST['email'] ?? ''));
-    $db     = get_db();
     $msg    = '';
     $msgType = 'ok';
 
-    if ($action === 'approve' && $email) {
-        $stmt = $db->prepare("UPDATE whitelist SET status = 'approved', reviewed_at = NOW() WHERE email = ?");
-        $stmt->execute([$email]);
-        $wl = $db->prepare("SELECT name, password_hash FROM whitelist WHERE email = ?");
-        $wl->execute([$email]);
-        $wlRow = $wl->fetch();
-        $exists = $db->prepare("SELECT id FROM users WHERE email = ?");
-        $exists->execute([$email]);
-        if (!$exists->fetch() && $wlRow) {
-            $db->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)")
-               ->execute([$wlRow['name'], $email, $wlRow['password_hash']]);
+    try {
+        $db = get_db();
+
+        if ($action === 'approve' && $email) {
+            $stmt = $db->prepare("UPDATE whitelist SET status = 'approved', reviewed_at = NOW() WHERE email = ?");
+            $stmt->execute([$email]);
+            $wl = $db->prepare("SELECT name, password_hash FROM whitelist WHERE email = ?");
+            $wl->execute([$email]);
+            $wlRow = $wl->fetch();
+            $exists = $db->prepare("SELECT id FROM users WHERE email = ?");
+            $exists->execute([$email]);
+            if (!$exists->fetch() && $wlRow) {
+                $db->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)")
+                   ->execute([$wlRow['name'], $email, $wlRow['password_hash']]);
+            }
+            $msg = "$email aprobado correctamente";
+        } elseif ($action === 'reject' && $email) {
+            $db->prepare("UPDATE whitelist SET status = 'rejected', reviewed_at = NOW() WHERE email = ?")
+               ->execute([$email]);
+            $msg = "$email rechazado";
+            $msgType = 'warn';
         }
-        $msg = "$email aprobado correctamente";
-    } elseif ($action === 'reject' && $email) {
-        $db->prepare("UPDATE whitelist SET status = 'rejected', reviewed_at = NOW() WHERE email = ?")
-           ->execute([$email]);
-        $msg = "$email rechazado";
+    } catch (Throwable $e) {
+        $msg = 'Error de base de datos: ' . $e->getMessage();
         $msgType = 'warn';
     }
 
@@ -57,17 +61,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $authed) {
 $whitelist = [];
 $users     = [];
 $stats     = ['pending' => 0, 'approved' => 0, 'rejected' => 0, 'users' => 0];
+$dbError   = '';
 
 if ($authed) {
-    $db        = get_db();
-    $whitelist = $db->query("SELECT id, name, email, status, requested_at, reviewed_at FROM whitelist ORDER BY requested_at DESC")->fetchAll();
-    $users     = $db->query("SELECT id, name, email, api_provider, created_at FROM users ORDER BY created_at DESC LIMIT 50")->fetchAll();
-    foreach ($whitelist as $r) $stats[$r['status']] = ($stats[$r['status']] ?? 0) + 1;
-    $stats['users'] = count($users);
+    try {
+        $db        = get_db();
+        $whitelist = $db->query("SELECT id, name, email, status, requested_at, reviewed_at FROM whitelist ORDER BY requested_at DESC")->fetchAll();
+        $users     = $db->query("SELECT id, name, email, api_provider, created_at FROM users ORDER BY created_at DESC LIMIT 50")->fetchAll();
+        foreach ($whitelist as $r) $stats[$r['status']] = ($stats[$r['status']] ?? 0) + 1;
+        $stats['users'] = count($users);
+    } catch (Throwable $e) {
+        $dbError = 'No se pudo conectar a la base de datos: ' . $e->getMessage();
+    }
 }
 
 $flashMsg  = htmlspecialchars($_GET['msg']  ?? '');
-$flashType = htmlspecialchars($_GET['type'] ?? 'ok');
+$flashType = in_array($_GET['type'] ?? '', ['ok', 'warn']) ? ($_GET['type']) : 'ok';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -415,6 +424,13 @@ tbody tr:hover td { background:var(--bg3); }
     <div class="flash flash-<?= $flashType ?>">
       <svg class="icon icon-sm"><use href="#ico-<?= $flashType === 'ok' ? 'check' : 'warn' ?>"/></svg>
       <?= $flashMsg ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if ($dbError): ?>
+    <div class="flash flash-warn">
+      <svg class="icon icon-sm"><use href="#ico-warn"/></svg>
+      <?= htmlspecialchars($dbError) ?>
     </div>
   <?php endif; ?>
 
