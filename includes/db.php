@@ -84,6 +84,7 @@ function migrate(PDO $pdo): void {
     // Migraciones seguras: añadir columnas si aún no existen (PostgreSQL soporta IF NOT EXISTS)
     $safeCols = [
         "ALTER TABLE users     ADD COLUMN IF NOT EXISTS api_model     TEXT DEFAULT NULL",
+        "ALTER TABLE users     ADD COLUMN IF NOT EXISTS memory        TEXT DEFAULT NULL",
         "ALTER TABLE whitelist ADD COLUMN IF NOT EXISTS name          TEXT DEFAULT NULL",
         "ALTER TABLE whitelist ADD COLUMN IF NOT EXISTS password_hash TEXT DEFAULT NULL",
     ];
