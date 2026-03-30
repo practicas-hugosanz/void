@@ -64,7 +64,6 @@ const app = {
   isTyping: false,
   streamAbort: null,     // AbortController for active stream
   sidebarCollapsed: false,
-  userMemory: '',        // Persistent memory injected into every system prompt
 
   async init() {
     this.initCursor();
@@ -131,10 +130,6 @@ const app = {
         createdAt: new Date(c.created_at).getTime()
       }));
     }
-
-    // Load user memory
-    const memRes = await apiFetch(API.user + '?action=memory');
-    if (memRes.ok) this.userMemory = memRes.data.memory || '';
 
     // Restore active conversation (last used, stored locally)
     this.activeConvId = localStorage.getItem('void_active_' + this.currentUser.email) || null;
@@ -678,7 +673,7 @@ const app = {
 
   // ── Streaming fetch via proxy ─────────────────────────────────────────────
   async fetchViaProxyStream(text, files = [], typingId) {
-    let SYSTEM = 'Eres VOID, un asistente de IA serio, preciso y directo. Tu nombre está inspirado en un agujero negro — absorbes cualquier pregunta y devuelves respuestas claras y precisas. Si el usuario te pregunta quién eres o cómo te llamas, responde que eres VOID. Responde siempre en el idioma del usuario. Cuando el usuario adjunte archivos o imágenes, analízalos en detalle y responde sobre su contenido.';\n    if (this.userMemory && this.userMemory.trim()) {\n      SYSTEM += '\\n\\n[MEMORIA DEL USUARIO — ten en cuenta siempre esta información sobre el usuario]\\n' + this.userMemory.trim();\n    }
+    const SYSTEM = 'Eres VOID, un asistente de IA serio, preciso y directo. Tu nombre está inspirado en un agujero negro — absorbes cualquier pregunta y devuelves respuestas claras y precisas. Si el usuario te pregunta quién eres o cómo te llamas, responde que eres VOID. Responde siempre en el idioma del usuario. Cuando el usuario adjunte archivos o imágenes, analízalos en detalle y responde sobre su contenido.';
 
     const history = this.chatHistory.slice(-10).map(m => ({
       role: m.role === 'assistant' ? 'assistant' : 'user',
@@ -924,7 +919,6 @@ const app = {
     msg.className = 'msg ' + uiRole;
     const avatarStr = isAI ? 'V' : (this.currentUser ? this.currentUser.name.slice(0, 1).toUpperCase() : 'U');
     const name = isAI ? 'VOID' : 'Tú';
-    const idx = this.chatHistory.length - 1;
 
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble ' + uiRole;
@@ -935,20 +929,8 @@ const app = {
       bubble.innerHTML = this.escapeHtml(text).replace(/\n/g, '<br>');
     }
 
-    // Action buttons
-    const actionsHtml = isAI
-      ? `<div class="msg-actions">
-           <button class="msg-action-btn" title="Copiar" onclick="app.copyMessage(${idx})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
-           <button class="msg-action-btn" title="Regenerar" onclick="app.regenerateMessage(${idx})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg></button>
-         </div>`
-      : `<div class="msg-actions">
-           <button class="msg-action-btn" title="Copiar" onclick="app.copyMessage(${idx})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
-           <button class="msg-action-btn" title="Editar" onclick="app.startEditMessage(${idx})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-         </div>`;
-
-    msg.innerHTML = `<div class="msg-avatar ${uiRole}">${avatarStr}</div><div class="msg-content"><div class="msg-name">${name}</div></div>`;
+    msg.innerHTML = '<div class="msg-avatar ' + uiRole + '">' + avatarStr + '</div><div class="msg-content"><div class="msg-name">' + name + '</div></div>';
     msg.querySelector('.msg-content').appendChild(bubble);
-    msg.querySelector('.msg-content').insertAdjacentHTML('beforeend', actionsHtml);
     inner.appendChild(msg);
     this.scrollToBottom();
   },
@@ -1123,7 +1105,6 @@ const app = {
     msg.className = 'msg ' + uiRole;
     const avatarStr = isAI ? 'V' : (this.currentUser ? this.currentUser.name.slice(0, 1).toUpperCase() : 'U');
     const name = isAI ? 'VOID' : 'Tú';
-    const idx = this.chatHistory.length - 1;
 
     let attachHtml = '';
     if (files && files.length) {
@@ -1142,14 +1123,8 @@ const app = {
       bubble.innerHTML += this.escapeHtml(text).replace(/\n/g, '<br>');
     }
 
-    const actionsHtml = `<div class="msg-actions">
-      <button class="msg-action-btn" title="Copiar" onclick="app.copyMessage(${idx})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
-      ${!isAI ? `<button class="msg-action-btn" title="Editar" onclick="app.startEditMessage(${idx})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>` : `<button class="msg-action-btn" title="Regenerar" onclick="app.regenerateMessage(${idx})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/></svg></button>`}
-    </div>`;
-
     msg.innerHTML = `<div class="msg-avatar ${uiRole}">${avatarStr}</div><div class="msg-content"><div class="msg-name">${name}</div></div>`;
     msg.querySelector('.msg-content').appendChild(bubble);
-    msg.querySelector('.msg-content').insertAdjacentHTML('beforeend', actionsHtml);
     inner.appendChild(msg);
     this.scrollToBottom();
   },
@@ -1188,185 +1163,6 @@ const app = {
       }
     });
     return ctx;
-  },
-
-  // ==========================================
-  // MEMORY MANAGEMENT
-  // ==========================================
-  openMemory() {
-    const modal = document.getElementById('modal-memory');
-    if (!modal) return;
-    document.getElementById('memory-textarea').value = this.userMemory || '';
-    this._updateMemoryCount();
-    modal.classList.add('active');
-  },
-
-  closeMemory() {
-    document.getElementById('modal-memory').classList.remove('active');
-  },
-
-  _updateMemoryCount() {
-    const ta = document.getElementById('memory-textarea');
-    const counter = document.getElementById('memory-char-count');
-    if (!ta || !counter) return;
-    const len = ta.value.length;
-    counter.textContent = len + ' / 4000';
-    counter.style.color = len > 3800 ? 'var(--color-text-danger, #ff6b6b)' : '';
-  },
-
-  async saveMemory() {
-    const ta = document.getElementById('memory-textarea');
-    if (!ta) return;
-    const memory = ta.value.trim();
-    if (memory.length > 4000) { this.showToast('⚠️ La memoria no puede superar 4000 caracteres'); return; }
-    const res = await apiFetch(API.user + '?action=memory', {
-      method: 'PUT',
-      body: JSON.stringify({ memory }),
-    });
-    if (!res.ok) { this.showToast('⚠️ ' + res.error); return; }
-    this.userMemory = memory;
-    this.closeMemory();
-    this.showToast('Memoria guardada ✦');
-  },
-
-  async clearMemory() {
-    document.getElementById('memory-textarea').value = '';
-    this._updateMemoryCount();
-  },
-
-  // ==========================================
-  // MESSAGE ACTIONS: COPY, EDIT, REGENERATE
-  // ==========================================
-  copyMessage(idx) {
-    const msg = this.chatHistory[idx];
-    if (!msg) return;
-    navigator.clipboard.writeText(msg.content).then(() => {
-      this.showToast('✓ Copiado');
-    }).catch(() => this.showToast('No se pudo copiar'));
-  },
-
-  startEditMessage(idx) {
-    // Only user messages can be edited
-    const msg = this.chatHistory[idx];
-    if (!msg || msg.role !== 'user') return;
-    // Find the bubble DOM element
-    const bubbles = document.querySelectorAll('#chat-messages-inner .msg');
-    const msgEl = bubbles[idx];
-    if (!msgEl) return;
-    const bubble = msgEl.querySelector('.msg-bubble');
-    if (!bubble) return;
-
-    const originalText = msg.content;
-    const textarea = document.createElement('textarea');
-    textarea.className = 'msg-edit-textarea';
-    textarea.value = originalText;
-    bubble.innerHTML = '';
-    bubble.appendChild(textarea);
-    textarea.focus();
-    textarea.style.height = 'auto';
-    textarea.style.height = textarea.scrollHeight + 'px';
-
-    // Action buttons
-    const actions = document.createElement('div');
-    actions.className = 'msg-edit-actions';
-    actions.innerHTML = `
-      <button class="msg-edit-btn msg-edit-confirm" onclick="app.confirmEditMessage(${idx}, this)">Enviar edición</button>
-      <button class="msg-edit-btn msg-edit-cancel" onclick="app.cancelEditMessage(${idx})">Cancelar</button>
-    `;
-    bubble.appendChild(actions);
-  },
-
-  cancelEditMessage(idx) {
-    const msg = this.chatHistory[idx];
-    if (!msg) return;
-    const bubbles = document.querySelectorAll('#chat-messages-inner .msg');
-    const msgEl = bubbles[idx];
-    if (!msgEl) return;
-    const bubble = msgEl.querySelector('.msg-bubble');
-    if (!bubble) return;
-    bubble.innerHTML = this.escapeHtml(msg.content).replace(/\n/g, '<br>');
-  },
-
-  async confirmEditMessage(idx, btn) {
-    if (this.isTyping) return;
-    const bubbles = document.querySelectorAll('#chat-messages-inner .msg');
-    const msgEl = bubbles[idx];
-    if (!msgEl) return;
-    const textarea = msgEl.querySelector('.msg-edit-textarea');
-    if (!textarea) return;
-    const newText = textarea.value.trim();
-    if (!newText) return;
-
-    // Truncate history from this message onwards
-    this.chatHistory = this.chatHistory.slice(0, idx);
-    this.chatHistory.push({ role: 'user', content: newText });
-
-    // Remove all DOM messages from idx onwards and re-render the edited one
-    const inner = document.getElementById('chat-messages-inner');
-    const allMsgs = Array.from(inner.querySelectorAll('.msg'));
-    allMsgs.slice(idx).forEach(el => el.remove());
-
-    // Re-render user bubble with new text
-    this.appendMessageUI('user', newText);
-    await this.syncCurrentConv();
-    this.updateSidebarHistory();
-
-    // Stream AI response
-    this.isTyping = true;
-    this._setSendButtonStop(true);
-    const typingId = this.addTypingIndicator();
-    const responseText = await this.fetchViaProxyStream(newText, [], typingId);
-
-    if (!this._lastStreamBubble) {
-      this.appendMessageUI('ai', responseText);
-    } else {
-      this._renderMarkdownInBubble(this._lastStreamBubble, responseText);
-      this._lastStreamBubble = null;
-    }
-
-    this.chatHistory.push({ role: 'assistant', content: responseText });
-    await this.syncCurrentConv();
-    this.isTyping = false;
-    this.streamAbort = null;
-    this._setSendButtonStop(false);
-  },
-
-  async regenerateMessage(idx) {
-    if (this.isTyping) return;
-    // idx should be an assistant message; get the preceding user message
-    let userIdx = idx - 1;
-    while (userIdx >= 0 && this.chatHistory[userIdx].role !== 'user') userIdx--;
-    if (userIdx < 0) return;
-
-    const userText = this.chatHistory[userIdx].content;
-
-    // Remove the assistant message and everything after
-    this.chatHistory = this.chatHistory.slice(0, idx);
-
-    // Remove DOM elements from idx onwards
-    const inner = document.getElementById('chat-messages-inner');
-    const allMsgs = Array.from(inner.querySelectorAll('.msg'));
-    allMsgs.slice(idx).forEach(el => el.remove());
-
-    await this.syncCurrentConv();
-
-    this.isTyping = true;
-    this._setSendButtonStop(true);
-    const typingId = this.addTypingIndicator();
-    const responseText = await this.fetchViaProxyStream(userText, [], typingId);
-
-    if (!this._lastStreamBubble) {
-      this.appendMessageUI('ai', responseText);
-    } else {
-      this._renderMarkdownInBubble(this._lastStreamBubble, responseText);
-      this._lastStreamBubble = null;
-    }
-
-    this.chatHistory.push({ role: 'assistant', content: responseText });
-    await this.syncCurrentConv();
-    this.isTyping = false;
-    this.streamAbort = null;
-    this._setSendButtonStop(false);
   },
 
   // ==========================================

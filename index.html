@@ -532,12 +532,6 @@
             <use href="#ico-user" />
           </svg>
         </button>
-        <button class="sidebar-user-profile" onclick="app.openMemory()" title="Memoria">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a9 9 0 0 1 9 9c0 3.18-1.65 5.97-4.13 7.59L17 21H7l.13-2.41A9 9 0 0 1 3 11a9 9 0 0 1 9-9z"/>
-            <path d="M9 11h6M9 14h4"/>
-          </svg>
-        </button>
         <button class="sidebar-user-logout" onclick="app.handleLogout()" title="Cerrar sesión">
           <svg class="icon">
             <use href="#ico-logout" />
@@ -836,41 +830,6 @@
       </div>
       <div class="modal-footer">
         <button class="btn-accent" onclick="app.closeModal('modal-contact')">Cerrar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== MODAL MEMORIA ==================== -->
-  <div class="modal-overlay" id="modal-memory">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">Memoria</h3>
-        <button class="modal-close" onclick="app.closeMemory()">
-          <svg class="icon"><use href="#ico-close" /></svg>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p class="modal-desc">Escribe aquí lo que quieres que VOID recuerde siempre sobre ti: tu nombre, rol, preferencias, contexto de trabajo o cualquier información relevante. Se inyectará en cada conversación.</p>
-        <div class="form-field">
-          <label class="form-label">Notas de memoria</label>
-          <textarea
-            id="memory-textarea"
-            class="memory-textarea"
-            placeholder="Ej: Me llamo Ana, soy desarrolladora backend en Python. Prefiero respuestas concisas y con ejemplos de código. Trabajo en proyectos de análisis de datos..."
-            maxlength="4000"
-            oninput="app._updateMemoryCount()"
-            rows="8"
-          ></textarea>
-          <div class="memory-char-count-row">
-            <span class="memory-hint">Esta información se incluye en cada mensaje que envías.</span>
-            <span id="memory-char-count" class="memory-char-count">0 / 4000</span>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-ghost" onclick="app.clearMemory()">Limpiar</button>
-        <button class="btn-ghost" onclick="app.closeMemory()">Cancelar</button>
-        <button class="btn-accent" onclick="app.saveMemory()">Guardar</button>
       </div>
     </div>
   </div>
