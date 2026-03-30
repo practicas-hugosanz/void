@@ -534,8 +534,7 @@
         </button>
         <button class="sidebar-user-profile" onclick="app.openMemory()" title="Memoria">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a9 9 0 0 1 9 9c0 3.18-1.65 5.97-4.13 7.59L17 21H7l.13-2.41A9 9 0 0 1 3 11a9 9 0 0 1 9-9z"/>
-            <path d="M9 11h6M9 14h4"/>
+            <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
           </svg>
         </button>
         <button class="sidebar-user-logout" onclick="app.handleLogout()" title="Cerrar sesión">
@@ -561,13 +560,6 @@
           </div>
         </div>
         <div class="chat-topbar-actions">
-          <button class="topbar-action" onclick="app.openMemory()" title="Memoria">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V12h-4V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z"/>
-              <path d="M10 12v2a2 2 0 0 0 4 0v-2"/>
-              <path d="M8 14H6a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-2"/>
-            </svg>
-          </button>
           <button class="topbar-action" onclick="app.clearChat()" title="Limpiar Chat">
             <svg class="icon">
               <use href="#ico-trash" />
@@ -617,7 +609,7 @@
 
   </div><!-- /page-chat -->
 
-
+  <!-- ==================== SETTINGS MODAL ==================== -->
   <div class="modal-overlay" id="modal-settings">
     <div class="modal-content">
       <div class="modal-header">
@@ -857,20 +849,13 @@
         </button>
       </div>
       <div class="modal-body">
-        <p class="modal-desc">Escribe aquí lo que quieres que VOID recuerde siempre sobre ti: tu nombre, rol, preferencias, contexto de trabajo o cualquier información relevante. Se inyectará en cada conversación.</p>
+        <p class="modal-desc">Escribe aquí lo que quieres que VOID recuerde siempre sobre ti: nombre, rol, preferencias, contexto. Se inyecta en cada conversación.</p>
         <div class="form-field">
           <label class="form-label">Notas de memoria</label>
-          <textarea
-            id="memory-textarea"
-            class="memory-textarea"
-            placeholder="Ej: Me llamo Ana, soy desarrolladora backend en Python. Prefiero respuestas concisas y con ejemplos de código. Trabajo en proyectos de análisis de datos..."
-            maxlength="4000"
-            oninput="app._updateMemoryCount()"
-            rows="8"
-          ></textarea>
-          <div class="memory-char-count-row">
-            <span class="memory-hint">Esta información se incluye en cada mensaje que envías.</span>
-            <span id="memory-char-count" class="memory-char-count">0 / 4000</span>
+          <textarea id="memory-textarea" class="memory-textarea" placeholder="Ej: Me llamo Ana, soy desarrolladora backend. Prefiero respuestas concisas con ejemplos de código..." maxlength="4000" oninput="app._updateMemoryCount()" rows="8"></textarea>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;">
+            <span style="font-size:0.75rem;color:var(--muted)">Se aplica a todas las conversaciones.</span>
+            <span id="memory-char-count" style="font-size:0.75rem;color:var(--muted)">0 / 4000</span>
           </div>
         </div>
       </div>

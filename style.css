@@ -2153,6 +2153,7 @@ body::before {
 }
 
 
+
 /* ============================================================
    MESSAGE ACTIONS — copy, edit, regenerate
    ============================================================ */
@@ -2161,17 +2162,16 @@ body::before {
   gap: 4px;
   margin-top: 8px;
   opacity: 0;
-  transition: opacity 0.2s ease;
-  min-height: 28px;
+  transition: opacity 0.18s ease;
 }
 .msg:hover .msg-actions,
 .msg:focus-within .msg-actions {
   opacity: 1;
 }
-/* On touch devices show always */
 @media (hover: none) {
-  .msg-actions { opacity: 0.6; }
+  .msg-actions { opacity: 0.7; }
 }
+.msg.user .msg-actions { justify-content: flex-end; }
 .msg-action-btn {
   display: inline-flex;
   align-items: center;
@@ -2183,19 +2183,15 @@ body::before {
   background: var(--bg2);
   color: var(--text2);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  flex-shrink: 0;
   padding: 0;
+  transition: background 0.15s, color 0.15s;
 }
 .msg-action-btn:hover {
   background: var(--surface2);
   color: var(--text);
 }
-/* User messages: align buttons to the right */
-.msg.user .msg-actions {
-  justify-content: flex-end;
-}
-/* Edit textarea inside bubble */
+
+/* Edit mode inside bubble */
 .msg-edit-textarea {
   width: 100%;
   min-height: 60px;
@@ -2225,7 +2221,6 @@ body::before {
   border: 1px solid var(--border);
   background: var(--surface2);
   color: var(--text2);
-  transition: background 0.15s, color 0.15s;
 }
 .msg-edit-confirm {
   background: var(--accent);
@@ -2233,12 +2228,8 @@ body::before {
   border-color: var(--accent);
   font-weight: 500;
 }
-.msg-edit-confirm:hover { opacity: 0.85; }
-.msg-edit-cancel:hover { background: var(--bg3); color: var(--text); }
 
-/* ============================================================
-   MEMORY MODAL
-   ============================================================ */
+/* Memory textarea */
 .memory-textarea {
   width: 100%;
   font-family: inherit;
@@ -2254,38 +2245,5 @@ body::before {
   box-sizing: border-box;
   transition: border-color 0.15s;
 }
-.memory-textarea:focus {
-  border-color: var(--accent);
-}
-.memory-textarea::placeholder {
-  color: var(--muted);
-  font-size: 0.82rem;
-}
-.memory-char-count-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 6px;
-}
-.memory-hint {
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-.memory-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 6px;
-  gap: 12px;
-}
-.memory-count {
-  font-size: 0.75rem;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-}
-.memory-char-count {
-  font-size: 0.75rem;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
+.memory-textarea:focus { border-color: var(--accent); }
+.memory-textarea::placeholder { color: var(--muted); font-size: 0.82rem; }

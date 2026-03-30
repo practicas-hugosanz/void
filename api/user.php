@@ -81,6 +81,7 @@ switch ($action) {
         json_ok(['avatar' => $avatarData]);
     }
 
+
     // ── MEMORY ───────────────────────────────────────────────────────────────
     case 'memory': {
         if ($method === 'GET') {
@@ -89,7 +90,6 @@ switch ($action) {
             $mem = $row->fetchColumn();
             json_ok(['memory' => $mem ?? '']);
         }
-        // PUT — save memory text
         $memory = body()['memory'] ?? '';
         if (strlen($memory) > 4000) json_err('La memoria no puede superar 4000 caracteres');
         $db->prepare("UPDATE users SET memory = ? WHERE id = ?")
