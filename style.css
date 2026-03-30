@@ -929,6 +929,11 @@ body::before {
   border-left: 2px solid rgba(232,255,71,0.25);
   padding-left: 14px;
 }
+/* Hide yellow border while black hole loading animation is active */
+.msg.ai .msg-bubble.streaming-bubble {
+  border-left: none;
+  padding-left: 16px;
+}
 
 /* User message — compact bubble, right side */
 .msg.user { flex-direction: row-reverse; justify-content: flex-start; }
