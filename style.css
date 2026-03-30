@@ -1677,6 +1677,34 @@ body::before {
 .streaming-bubble {
   position: relative;
 }
+/* Streaming chunk fade-in */
+@keyframes chunkFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.stream-chunk-fade {
+  animation: chunkFadeIn 0.35s ease forwards;
+  white-space: pre-wrap;
+}
+
+/* Final markdown fade-in after stream ends */
+@keyframes markdownFadeIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.markdown-fade-in {
+  animation: markdownFadeIn 0.3s ease forwards;
+}
+
+.streaming-bubble .streaming-bh-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 2px 0;
+}
+.streaming-bh-canvas {
+  display: block;
+}
 .streaming-bubble .typing-dots {
   display: inline-flex;
   gap: 4px;

@@ -743,9 +743,17 @@ const app = {
             if (obj.error) { this._renderMarkdownInBubble(bubble, '⚠️ ' + obj.error); return '⚠️ ' + obj.error; }
             if (obj.chunk) {
               fullText += obj.chunk;
-              const dots = bubble.querySelector('.typing-dots');
-              if (dots) dots.remove();
-              bubble.textContent = fullText;
+              // Remove black hole animation wrap on first chunk
+              const bhWrap = bubble.querySelector('.streaming-bh-wrap');
+              if (bhWrap) {
+                if (bubble._bhRaf) { cancelAnimationFrame(bubble._bhRaf); bubble._bhRaf = null; }
+                bhWrap.remove();
+              }
+              // Append new chunk as a fade-in span
+              const span = document.createElement('span');
+              span.className = 'stream-chunk-fade';
+              span.textContent = obj.chunk;
+              bubble.appendChild(span);
               this.scrollToBottom();
             }
           } catch (_) {}
@@ -777,16 +785,80 @@ const app = {
     name.textContent = 'VOID';
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble ai streaming-bubble';
-    const dots = document.createElement('span');
-    dots.className = 'typing-dots';
-    dots.innerHTML = '<span></span><span></span><span></span>';
-    bubble.appendChild(dots);
+
+    // Mini black hole canvas instead of typing dots
+    const bhWrap = document.createElement('div');
+    bhWrap.className = 'streaming-bh-wrap';
+    const canvasId = 'bh-stream-' + Date.now();
+    const canvas = document.createElement('canvas');
+    canvas.id = canvasId;
+    canvas.className = 'streaming-bh-canvas';
+    canvas.width = 44;
+    canvas.height = 44;
+    bhWrap.appendChild(canvas);
+    bubble.appendChild(bhWrap);
+
     content.appendChild(name);
     content.appendChild(bubble);
     msg.appendChild(avatar);
     msg.appendChild(content);
     inner.appendChild(msg);
     this.scrollToBottom();
+
+    // Animate mini black hole (same as addTypingIndicator)
+    const ctx = canvas.getContext('2d');
+    const W = 44, H = 44, cx = W / 2, cy = H / 2;
+    let particles = [], lastTime = null;
+    for (let i = 0; i < 32; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 8 + Math.random() * 14;
+      particles.push({
+        a, r, baseR: r,
+        dir: Math.random() > 0.5 ? 1 : -1,
+        speed: 0.0008 + Math.random() * 0.0012,
+        size: Math.random() * 1.1 + 0.3,
+        opacity: Math.random() * 0.8 + 0.2,
+        isYellow: Math.random() < 0.45,
+        hue: 55 + Math.random() * 20
+      });
+    }
+    const draw = (ts) => {
+      if (lastTime === null) lastTime = ts;
+      const dt = Math.min(ts - lastTime, 50);
+      lastTime = ts;
+      ctx.clearRect(0, 0, W, H);
+      // Outer glow
+      for (let i = 2; i > 0; i--) {
+        const g = ctx.createRadialGradient(cx, cy, 3 * i, cx, cy, 11 * i + 5);
+        g.addColorStop(0, `rgba(232,255,71,${0.06 / i})`);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, 11 * i + 5, 0, Math.PI * 2); ctx.fill();
+      }
+      // Accretion disc warm glow
+      const disc = ctx.createRadialGradient(cx, cy, 5, cx, cy, 19);
+      disc.addColorStop(0, 'rgba(0,0,0,0)');
+      disc.addColorStop(0.4, 'rgba(232,200,40,0.07)');
+      disc.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = disc; ctx.beginPath(); ctx.arc(cx, cy, 19, 0, Math.PI * 2); ctx.fill();
+      // Event horizon
+      const bh = ctx.createRadialGradient(cx, cy, 0, cx, cy, 7);
+      bh.addColorStop(0, 'rgba(0,0,0,1)'); bh.addColorStop(0.8, 'rgba(0,0,0,1)'); bh.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = bh; ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI * 2); ctx.fill();
+      // Particles
+      particles.forEach(p => {
+        p.a += p.dir * p.speed * dt;
+        p.r = p.baseR + Math.sin(p.a * 3) * 1.5;
+        const x = cx + Math.cos(p.a) * p.r;
+        const y = cy + Math.sin(p.a) * p.r * 0.38;
+        const alpha = p.opacity * Math.max(0, 1 - (10 / p.r));
+        ctx.beginPath(); ctx.arc(x, y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.isYellow ? `hsla(${p.hue},100%,68%,${alpha})` : `rgba(235,238,248,${alpha * 0.7})`;
+        ctx.fill();
+      });
+      bubble._bhRaf = requestAnimationFrame(draw);
+    };
+    bubble._bhRaf = requestAnimationFrame(draw);
+
     return bubble;
   },
 
@@ -823,6 +895,7 @@ const app = {
     const parsed = marked.parse(text.trim());
     bubble.innerHTML = parsed.replace(/<p>\s*<\/p>\s*$/i, '');
     bubble.style.whiteSpace = 'normal';
+    bubble.classList.add('markdown-fade-in');
     this.scrollToBottom();
   },
 
