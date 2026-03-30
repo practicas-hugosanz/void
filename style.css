@@ -915,7 +915,7 @@ body::before {
 /* AI message — no avatar, no bubble, full-width flowing text */
 .msg.ai { flex-direction: column; gap: 0; }
 .msg.ai .msg-avatar { display: none; }
-.msg.ai .msg-content { max-width: 100%; min-width: 0; }
+.msg.ai .msg-content { max-width: 100%; min-width: 0; display: flex; flex-direction: column; }
 .msg.ai .msg-name { display: none; }
 .msg.ai .msg-bubble {
   background: none; border: none; border-radius: 0;
@@ -943,7 +943,7 @@ body::before {
   font-size: 0.78rem; font-weight: 700; margin-top: 2px;
 }
 .msg-avatar.user { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-.msg.user .msg-content { max-width: 72%; min-width: 0; }
+.msg.user .msg-content { max-width: 72%; min-width: 0; display: flex; flex-direction: column; align-items: flex-end; }
 .msg.user .msg-name { display: none; }
 .msg-bubble {
   word-wrap: break-word; overflow-wrap: break-word;
@@ -953,6 +953,7 @@ body::before {
   background: var(--surface); border: 1px solid var(--border2);
   color: var(--text); font-size: 0.9rem; line-height: 1.65;
   padding: 11px 16px; border-radius: 18px; border-bottom-right-radius: 5px;
+  align-self: flex-end;
 }
 
 /* Typing black hole */
@@ -2158,32 +2159,41 @@ body::before {
 .msg-actions {
   display: flex;
   gap: 4px;
-  margin-top: 6px;
+  margin-top: 8px;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.2s ease;
+  min-height: 28px;
 }
 .msg:hover .msg-actions,
 .msg:focus-within .msg-actions {
   opacity: 1;
 }
+/* On touch devices show always */
+@media (hover: none) {
+  .msg-actions { opacity: 0.6; }
+}
 .msg-action-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
-  border: 0.5px solid var(--border);
-  background: var(--surface2);
+  border: 1px solid var(--border);
+  background: var(--bg2);
   color: var(--text2);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
+  padding: 0;
 }
 .msg-action-btn:hover {
-  background: var(--bg3);
+  background: var(--surface2);
   color: var(--text);
-  border-color: var(--border2);
+}
+/* User messages: align buttons to the right */
+.msg.user .msg-actions {
+  justify-content: flex-end;
 }
 /* Edit textarea inside bubble */
 .msg-edit-textarea {
