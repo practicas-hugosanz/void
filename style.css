@@ -1175,29 +1175,39 @@ body::before {
    =================================== */
 
 /* ---- 900px tablets ---- */
-@media (max-width: 900px) {
-  /* Nav */
-  .l-nav { padding: 16px 20px; grid-template-columns: 1fr auto; }
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE SYSTEM
+   Breakpoints:
+   • xs  : ≤ 280px  — Galaxy Fold
+   • sm  : ≤ 430px  — iPhone 14 Pro Max, Pixel 7, Samsung Galaxy S20/A51/71
+   • md  : ≤ 768px  — tablets portrait (iPad Mini, etc.)
+   • lg  : ≤ 1024px — iPad Air, iPad Pro, Surface Pro 7, Asus Zenbook Fold
+   • xl  : ≥ 1025px — desktop / Nest Hub Max
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Shared: all non-desktop (≤ 1024px) ─────────────────────────────────── */
+@media (max-width: 1024px) {
+
+  /* --- Navigation --- */
+  .l-nav { padding: 16px 20px; }
   .l-nav-links { display: none; }
   .l-nav-actions { display: none; }
   .l-nav-hamburger { display: flex; }
 
-  /* Hero */
-  .l-hero { padding: 100px 24px 80px; }
-  .l-hero-title { font-size: clamp(2.4rem, 10vw, 4.5rem); }
+  /* --- Landing sections --- */
+  .l-hero { padding: 100px 28px 80px; }
+  .l-hero-title { font-size: clamp(2.4rem, 6vw, 4.5rem); }
+  .l-features { padding: 80px 28px; }
+  .l-bigfeature { padding: 0 28px 80px; }
+  .features-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
+  .bigfeature-inner { grid-template-columns: 1fr; padding: 40px 32px; gap: 40px; }
+  .l-footer-top { grid-template-columns: 1fr 1fr; }
+  .l-stats-row { margin: 0 28px 80px; grid-template-columns: 1fr 1fr; }
+  .l-demo-section { padding: 0 28px 80px; }
+  .l-whitelist { padding: 0 28px 100px; }
+  .l-whitelist-inner { padding: 52px 32px; }
 
-  /* Sections */
-  .l-features { padding: 80px 24px; }
-  .l-bigfeature { padding: 0 24px 80px; }
-  .features-grid { grid-template-columns: 1fr; gap: 14px; }
-  .bigfeature-inner { grid-template-columns: 1fr; padding: 40px 28px; gap: 40px; }
-  .l-footer-top { grid-template-columns: 1fr 1fr 1fr; }
-  .l-stats-row { margin: 0 24px 80px; grid-template-columns: 1fr; }
-  .l-demo-section { padding: 0 24px 80px; }
-  .l-whitelist { padding: 0 24px 100px; }
-  .l-whitelist-inner { padding: 52px 28px; }
-
-  /* Chat sidebar — slide in from left */
+  /* --- Chat sidebar: slide-in overlay --- */
   .chat-sidebar {
     position: absolute;
     top: 0; left: 0; bottom: 0;
@@ -1210,7 +1220,6 @@ body::before {
     transform: translateX(0);
     box-shadow: 24px 0 60px rgba(0,0,0,0.7);
   }
-  /* Backdrop overlay when sidebar is open */
   .sidebar-backdrop {
     display: none;
     position: absolute; inset: 0;
@@ -1221,105 +1230,246 @@ body::before {
   .sidebar-backdrop.visible { display: block; }
   .mobile-menu-btn { display: block; }
 
-  /* Modals */
-  .modal-content { margin: 0 16px; border-radius: 20px; }
-  .modal-content-lg { max-width: calc(100% - 32px); }
-  .modal-header { padding: 14px 18px; }
-  .modal-body { padding: 14px 18px; }
-  .modal-footer { padding: 10px 18px; }
+  /* --- Modals --- */
+  .modal-content { margin: 0 20px; border-radius: 20px; }
+  .modal-content-lg { max-width: calc(100% - 40px); }
+  .modal-header { padding: 14px 20px; }
+  .modal-body { padding: 14px 20px; }
+  .modal-footer { padding: 10px 20px; }
 }
 
-/* ---- 600px mobile ---- */
-@media (max-width: 600px) {
-  /* Nav */
-  .l-nav { padding: 14px 18px; top: 0; }
+/* ── Tablets portrait: iPad Mini 768, iPad Air 820 ───────────────────────── */
+@media (max-width: 900px) {
+  .features-grid { grid-template-columns: 1fr; }
+  .l-stats-row { grid-template-columns: 1fr; }
+  .l-footer-top { grid-template-columns: 1fr 1fr 1fr; }
 
-  /* Hide custom cursor on touch devices */
-  #cursor, #cursor-ring { display: none; }
-  * { cursor: auto !important; }
+  /* Chat */
+  .chat-topbar { padding: 14px 20px; gap: 10px; }
+  .chat-messages-inner { padding: 0 20px; gap: 20px; }
+  .chat-input-area { padding: 16px 20px 20px; }
+  .msg.user .msg-content { max-width: 80%; }
+}
+
+/* ── Mobile landscape + small tablets (≤ 768px) ─────────────────────────── */
+@media (max-width: 768px) {
+  /* Nav */
+  .l-nav { padding: 14px 18px; }
 
   /* Hero */
-  .l-hero { padding: 90px 20px 70px; text-align: center; }
-  .l-hero-title { font-size: clamp(1.6rem, 9vw, 2.4rem); line-height: 0.95; margin-bottom: 20px; }
+  .l-hero { padding: 88px 20px 64px; text-align: center; }
+  .l-hero-title { font-size: clamp(2rem, 8vw, 3.2rem); line-height: 0.95; margin-bottom: 20px; }
   .l-hero-eyebrow { font-size: 0.65rem; padding: 6px 12px; }
-  .l-hero-sub { font-size: 0.9rem; margin-bottom: 36px; }
+  .l-hero-sub { font-size: 0.9rem; margin-bottom: 32px; }
   .l-hero-cta { flex-direction: column; align-items: stretch; gap: 10px; }
-  .btn-hero-primary, .btn-hero-outline { padding: 16px 24px; font-size: 0.88rem; justify-content: center; }
+  .btn-hero-primary, .btn-hero-outline { padding: 15px 22px; font-size: 0.88rem; justify-content: center; }
   .scroll-hint { display: none; }
 
   /* Marquee */
   .l-marquee { padding: 14px 0; }
 
   /* Features */
-  .l-features { padding: 60px 18px; }
-  .l-features-head { margin-bottom: 48px; }
-  .section-title { font-size: clamp(1.8rem, 8vw, 2.8rem); }
+  .l-features { padding: 64px 18px; }
+  .l-features-head { margin-bottom: 44px; }
+  .section-title { font-size: clamp(1.8rem, 7vw, 2.8rem); }
   .feature-card { padding: 28px 22px; }
 
   /* Bigfeature */
-  .l-bigfeature { padding: 0 18px 60px; }
+  .l-bigfeature { padding: 0 18px 64px; }
   .bigfeature-inner { padding: 32px 22px; gap: 32px; }
   .bigfeature-title { font-size: 2rem; }
   .bigfeature-stats { grid-template-columns: 1fr 1fr; gap: 12px; }
 
   /* Stats */
-  .l-stats-row { margin: 0 18px 60px; border-radius: 16px; }
+  .l-stats-row { margin: 0 18px 64px; border-radius: 16px; }
   .l-stat-cell { padding: 28px 20px; }
   .l-stat-num { font-size: 2.2rem; }
 
   /* Demo */
-  .l-demo-section { padding: 0 14px 60px; }
+  .l-demo-section { padding: 0 16px 64px; }
   .l-demo-window { border-radius: 16px; }
-  .l-demo-messages { height: 300px; padding: 20px 16px; gap: 16px; }
+  .l-demo-messages { height: 320px; padding: 20px 16px; gap: 16px; }
   .l-demo-bubble { font-size: 0.84rem; max-width: 88%; }
   .l-demo-titlebar { padding: 12px 16px; }
   .l-demo-inputbar { padding: 12px 16px; }
 
-  /* Chat welcome on mobile */
-  .chat-welcome { padding: 48px 20px 28px; }
-  .chat-welcome h2 { font-size: 1.3rem; }
+  /* Chat welcome */
+  .chat-welcome { padding: 52px 20px 28px; }
+  .chat-welcome h2 { font-size: 1.35rem; }
 
   /* Whitelist */
   .l-whitelist { padding: 0 18px 80px; }
   .l-whitelist-inner { padding: 40px 22px; border-radius: 20px; }
-  .l-whitelist-title { font-size: clamp(2rem, 9vw, 3rem); }
+  .l-whitelist-title { font-size: clamp(2rem, 8vw, 3rem); }
   .l-whitelist-sub { font-size: 0.9rem; }
   .btn-whitelist { padding: 14px 22px; font-size: 0.84rem; width: 100%; justify-content: center; align-items: center; box-sizing: border-box; }
 
   /* Footer */
   .l-footer { padding: 40px 18px 24px; }
-  .l-footer-top { grid-template-columns: 1fr; gap: 28px; }
+  .l-footer-top { grid-template-columns: 1fr 1fr; gap: 28px; }
   .l-footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
 
-  /* Auth page */
+  /* Auth */
   .auth-box { padding: 36px 24px; margin: 0 16px; }
   .auth-back { top: 16px; left: 16px; }
 
-  /* Chat page */
-  .chat-topbar { padding: 12px 16px; gap: 10px; }
-  .chat-model-selector { padding: 6px 10px; font-size: 0.72rem; }
-  .chat-topbar-left { gap: 8px; }
-  .chat-input-area { padding: 14px 16px 18px; }
-  .chat-messages { padding: 20px 0; }
-  .chat-messages-inner { padding: 0 16px; gap: 16px; }
-  .msg-bubble { padding: 12px 14px; font-size: 0.85rem; }
-  .msg-content { max-width: 88%; }
-  .chat-send-btn { width: 36px; height: 36px; }
-
-  /* Modals full-screen on mobile */
+  /* Modals slide up */
   .modal-overlay { align-items: flex-end; }
   .modal-content { margin: 0; border-radius: 20px 20px 0 0; width: 100%; max-width: 100%; }
   .modal-content-lg { max-width: 100%; }
-  .modal-body-scroll { max-height: 50vh; }
+  .modal-body-scroll { max-height: 52vh; }
 
   /* Provider selector */
   .provider-selector { flex-direction: column; }
   .provider-btn { justify-content: center; }
 }
 
+/* ── Mobile phones: ≤ 430px ─────────────────────────────────────────────── */
+/* Covers: iPhone 14 Pro Max (430), Pixel 7 (412), Galaxy S20/A51/71 (412)  */
+@media (max-width: 430px) {
 
-/* ===== SIDEBAR COLLAPSE (DESKTOP) ===== */
-@media (min-width: 901px) {
+  /* Hide custom cursor on touch */
+  #cursor, #cursor-ring { display: none; }
+  * { cursor: auto !important; }
+
+  /* Nav */
+  .l-nav { padding: 13px 16px; top: 0; }
+
+  /* Hero */
+  .l-hero { padding: 84px 16px 60px; }
+  .l-hero-title { font-size: clamp(1.7rem, 9vw, 2.6rem); margin-bottom: 18px; }
+  .l-hero-sub { font-size: 0.875rem; }
+  .btn-hero-primary, .btn-hero-outline { padding: 15px 20px; }
+
+  /* Features */
+  .l-features { padding: 56px 16px; }
+  .feature-card { padding: 24px 18px; }
+
+  /* Stats */
+  .l-stats-row { margin: 0 16px 56px; }
+
+  /* Demo */
+  .l-demo-section { padding: 0 12px 56px; }
+  .l-demo-messages { height: 280px; }
+  .l-demo-bubble { font-size: 0.82rem; }
+
+  /* Chat topbar */
+  .chat-topbar { padding: 11px 14px; gap: 8px; }
+  .chat-model-selector { padding: 6px 10px; font-size: 0.7rem; }
+  .chat-topbar-left { gap: 7px; }
+
+  /* Messages */
+  .chat-messages { padding: 16px 0; }
+  .chat-messages-inner { padding: 0 14px; gap: 14px; }
+  .msg-bubble.user { font-size: 0.875rem; padding: 10px 13px; }
+  .msg.ai .msg-bubble { font-size: 0.9rem; }
+  .msg.user .msg-content { max-width: 86%; }
+
+  /* Input */
+  .chat-input-area { padding: 12px 14px 16px; }
+  .chat-input-inner { max-width: 100%; }
+  #chat-input { font-size: 0.88rem; padding: 10px 6px; }
+  .chat-send-btn { width: 36px; height: 36px; border-radius: 10px; }
+  .chat-attach-btn { width: 36px; height: 36px; }
+  .chat-footer-note { font-size: 0.68rem; margin-top: 8px; }
+
+  /* Welcome screen */
+  .chat-welcome { padding: 44px 16px 24px; }
+  .chat-welcome h2 { font-size: 1.2rem; }
+
+  /* Footer */
+  .l-footer-top { grid-template-columns: 1fr; gap: 24px; }
+
+  /* Auth */
+  .auth-box { padding: 32px 20px; margin: 0 12px; }
+
+  /* Whitelist */
+  .l-whitelist-inner { padding: 36px 18px; }
+  .wl-modal-title { font-size: 1.2rem; }
+  .whitelist-modal { padding: 44px 24px 32px; }
+
+  /* Modals */
+  .modal-body-scroll { max-height: 48vh; }
+  .modal-header { padding: 13px 16px; }
+  .modal-body { padding: 13px 16px; }
+  .modal-footer { padding: 10px 16px; }
+}
+
+/* ── Ultra narrow: Galaxy Fold (280px) ───────────────────────────────────── */
+@media (max-width: 320px) {
+
+  .l-hero-title { font-size: clamp(1.4rem, 10vw, 2rem); }
+  .l-hero-sub { font-size: 0.82rem; }
+  .btn-hero-primary, .btn-hero-outline { padding: 13px 16px; font-size: 0.82rem; }
+
+  /* Chat — ultra compact */
+  .chat-topbar { padding: 10px 10px; }
+  .chat-model-selector { padding: 5px 8px; font-size: 0.66rem; max-width: 120px; }
+  .chat-messages-inner { padding: 0 10px; gap: 12px; }
+  .chat-input-area { padding: 10px 10px 14px; }
+  #chat-input { font-size: 0.84rem; }
+  .chat-send-btn { width: 32px; height: 32px; border-radius: 9px; }
+  .chat-attach-btn { width: 32px; height: 32px; }
+
+  /* Sidebar narrower */
+  .chat-sidebar { width: 230px; min-width: 230px; }
+
+  .msg.user .msg-content { max-width: 92%; }
+  .msg.ai .msg-bubble { font-size: 0.85rem; }
+  .msg-bubble.user { font-size: 0.84rem; padding: 9px 11px; }
+
+  /* Welcome */
+  .chat-welcome { padding: 36px 12px 20px; }
+  .chat-welcome h2 { font-size: 1.05rem; }
+
+  .section-title { font-size: clamp(1.5rem, 9vw, 2rem); }
+  .feature-card { padding: 20px 14px; }
+  .l-stat-num { font-size: 1.9rem; }
+}
+
+/* ── Safe-area insets for notch/island devices (iOS) ────────────────────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .chat-input-area {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+  .l-nav {
+    padding-top: calc(16px + env(safe-area-inset-top));
+  }
+}
+
+/* ── Landscape phones (height ≤ 500px) ──────────────────────────────────── */
+@media (max-height: 500px) and (max-width: 900px) {
+  .chat-welcome { padding: 24px 20px 16px; }
+  .chat-welcome h2 { font-size: 1.1rem; }
+  .chat-messages { padding: 12px 0; }
+  .chat-input-area { padding: 10px 16px 12px; }
+  .l-hero { padding: 72px 20px 48px; }
+  .l-demo-messages { height: 220px; }
+}
+
+/* ── iPad Pro / Surface Pro 7 / Zenbook Fold (≥ 900px tablet) ───────────── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .chat-messages-inner { max-width: 640px; padding: 0 24px; }
+  .chat-input-inner { max-width: 640px; }
+  .chat-welcome { padding: 64px 28px 36px; }
+  .chat-welcome h2 { font-size: 1.45rem; }
+  .msg.user .msg-content { max-width: 72%; }
+  .features-grid { grid-template-columns: 1fr 1fr; }
+  .l-footer-top { grid-template-columns: 1fr 1fr 1fr; }
+  .l-stats-row { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+}
+
+/* ── Nest Hub Max (1280×800 landscape) ───────────────────────────────────── */
+@media (min-width: 1025px) and (max-height: 820px) {
+  .chat-welcome { padding: 48px 28px 32px; }
+  .chat-messages { padding: 20px 0; }
+  .l-hero { padding: 90px 48px 70px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIDEBAR COLLAPSE (DESKTOP only ≥ 1025px)
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1025px) {
 .chat-sidebar {
   transition: width 0.3s cubic-bezier(0.4,0,0.2,1), min-width 0.3s cubic-bezier(0.4,0,0.2,1);
 }
@@ -1370,7 +1520,7 @@ body::before {
 .chat-main.sidebar-collapsed {
   /* sidebar already shrinks in-flow; no extra margin needed */
 }
-} /* end @media (min-width: 901px) */
+} /* end @media (min-width: 1025px) */
 
 /* ===== SIDEBAR CONV DELETE BUTTON ===== */
 .sidebar-conv { position: relative; }
@@ -1733,3 +1883,271 @@ body::before {
   border-color: rgba(248, 113, 113, 0.4);
   color: #f87171;
 }
+
+
+/* ============================================================
+   RESPONSIVE — ALL DEVICES
+   Breakpoints:
+   - 280px  Galaxy Fold (portrait)
+   - 412px  Pixel 7 / Samsung A51/71 / Galaxy S20 Ultra
+   - 430px  iPhone 14 Pro Max
+   - 768px  iPad Mini
+   - 820px  iPad Air
+   - 853px  Asus Zenbook Fold
+   - 912px  Surface Pro 7
+   - 1024px iPad Pro
+   - 1280px Nest Hub Max / Zenbook Fold landscape
+   ============================================================ */
+
+/* ── Safe-area insets (notch / home indicator) ── */
+:root {
+  --safe-top:    env(safe-area-inset-top,    0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left,   0px);
+  --safe-right:  env(safe-area-inset-right,  0px);
+}
+
+/* ============================================================
+   GALAXY FOLD — 280px (extreme narrow)
+   ============================================================ */
+@media (max-width: 300px) {
+  /* Nav */
+  .l-nav { padding: 12px 14px; }
+  .l-nav-logo { font-size: 1.2rem; }
+
+  /* Hero */
+  .l-hero { padding: 80px 14px 60px; }
+  .l-hero-title { font-size: clamp(1.4rem, 11vw, 2rem); }
+  .l-hero-sub { font-size: 0.82rem; }
+  .l-hero-cta { flex-direction: column; align-items: stretch; gap: 8px; }
+  .btn-hero-primary, .btn-hero-outline { padding: 14px 18px; font-size: 0.82rem; }
+
+  /* Chat layout */
+  #page-chat.active { flex-direction: column; }
+  .chat-topbar { padding: 10px 12px; gap: 6px; }
+  .chat-model-selector { font-size: 0.66rem; padding: 5px 8px; max-width: 120px; }
+  .chat-messages { padding: 16px 0; }
+  .chat-messages-inner { padding: 0 10px; gap: 14px; }
+  .msg-bubble { padding: 10px 11px; font-size: 0.8rem; }
+  .msg.user .msg-content { max-width: 94%; }
+  .chat-input-area { padding: 10px 12px calc(10px + var(--safe-bottom)); }
+  .chat-input-box { border-radius: 14px; }
+  #chat-input { font-size: 0.84rem; padding: 10px 6px; }
+  .chat-send-btn { width: 34px; height: 34px; border-radius: 10px; }
+  .chat-attach-btn { width: 34px; height: 34px; }
+  .chat-welcome { padding: 36px 14px 20px; }
+  .chat-welcome h2 { font-size: 1.1rem; }
+  .chat-footer-note { font-size: 0.66rem; }
+
+  /* Sidebar */
+  .chat-sidebar { width: 240px; min-width: 240px; }
+
+  /* Modals */
+  .modal-content { margin: 0; border-radius: 18px 18px 0 0; }
+}
+
+/* ============================================================
+   SMALL PHONES — up to 430px
+   iPhone 14 Pro Max (430), Pixel 7 (412), S20 Ultra (412),
+   Samsung A51/71 (412)
+   ============================================================ */
+@media (max-width: 430px) {
+  /* ── Landing ── */
+  .l-nav { padding: 13px 18px; }
+  .l-hero { padding: 88px 18px 68px; text-align: center; }
+  .l-hero-title { font-size: clamp(1.55rem, 9.5vw, 2.3rem); line-height: 0.96; }
+  .l-hero-eyebrow { font-size: 0.63rem; }
+  .l-hero-sub { font-size: 0.88rem; }
+  .l-hero-cta { flex-direction: column; align-items: stretch; gap: 10px; }
+  .btn-hero-primary, .btn-hero-outline { padding: 15px 22px; font-size: 0.86rem; justify-content: center; }
+  .section-title { font-size: clamp(1.7rem, 8.5vw, 2.5rem); }
+  .feature-card { padding: 26px 20px; }
+  .bigfeature-stats { grid-template-columns: 1fr 1fr; }
+
+  /* ── Chat layout ── */
+  .chat-topbar { padding: 11px 14px; gap: 8px; }
+  .chat-topbar-left { gap: 8px; }
+  .chat-model-selector { font-size: 0.7rem; padding: 6px 10px; }
+  .topbar-action { width: 32px; height: 32px; border-radius: 8px; }
+
+  .chat-messages { padding: 18px 0; }
+  .chat-messages-inner { padding: 0 14px; gap: 18px; max-width: 100%; }
+
+  .msg-bubble { padding: 11px 13px; font-size: 0.84rem; }
+  .msg.ai .msg-bubble { font-size: 0.88rem; line-height: 1.75; }
+  .msg.user .msg-content { max-width: 90%; }
+  .msg-bubble.user { border-radius: 16px; border-bottom-right-radius: 4px; }
+
+  .chat-input-area {
+    padding: 12px 14px calc(14px + var(--safe-bottom));
+  }
+  .chat-input-inner { max-width: 100%; }
+  .chat-input-box { border-radius: 16px; padding: 3px; }
+  #chat-input { font-size: 0.88rem; padding: 11px 7px; max-height: 120px; }
+  .chat-send-btn { width: 38px; height: 38px; border-radius: 11px; margin: 3px; }
+  .chat-attach-btn { width: 38px; height: 38px; margin: 3px; }
+  .chat-footer-note { font-size: 0.68rem; margin-top: 8px; }
+
+  .chat-welcome { padding: 44px 18px 24px; }
+  .chat-welcome h2 { font-size: 1.2rem; }
+
+  /* Sidebar full behaviour */
+  .chat-sidebar { width: 80vw; min-width: 0; max-width: 300px; }
+
+  /* Modals */
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal-content {
+    margin: 0; width: 100%; max-width: 100%;
+    border-radius: 22px 22px 0 0;
+    padding-bottom: var(--safe-bottom);
+  }
+  .modal-body-scroll { max-height: 55vh; }
+}
+
+/* ============================================================
+   TABLETS (portrait) — 768px – 1024px
+   iPad Mini (768), iPad Air (820), Zenbook Fold (853),
+   Surface Pro 7 (912), iPad Pro (1024)
+   ============================================================ */
+@media (min-width: 431px) and (max-width: 1024px) {
+  /* ── Landing ── */
+  .l-nav { padding: 16px 32px; }
+  .l-hero { padding: 110px 40px 90px; }
+  .l-hero-title { font-size: clamp(2.6rem, 6vw, 4rem); }
+  .l-features { padding: 80px 32px; }
+  .l-bigfeature { padding: 0 32px 80px; }
+  .bigfeature-inner { grid-template-columns: 1fr; padding: 44px 36px; gap: 44px; }
+  .features-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .l-footer-top { grid-template-columns: 1fr 1fr; gap: 28px; }
+  .l-stats-row { margin: 0 32px 80px; grid-template-columns: 1fr 1fr; }
+  .section-title { font-size: clamp(2rem, 5vw, 3rem); }
+
+  /* ── Chat: sidebar always hidden, slide-in ── */
+  .chat-sidebar {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 280px; min-width: 0;
+    transform: translateX(-100%);
+    transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+    z-index: 50;
+  }
+  .chat-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 20px 0 60px rgba(0,0,0,0.7);
+  }
+  .mobile-menu-btn { display: block; }
+  .sidebar-backdrop { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.5); z-index: 49; }
+  .sidebar-backdrop.visible { display: block; }
+
+  .chat-topbar { padding: 14px 22px; }
+  .chat-messages-inner { max-width: 680px; padding: 0 20px; }
+  .chat-input-area { padding: 16px 20px calc(20px + var(--safe-bottom)); }
+  .chat-input-inner { max-width: 680px; }
+  .msg.user .msg-content { max-width: 78%; }
+}
+
+/* iPad Mini — 768px */
+@media (min-width: 431px) and (max-width: 768px) {
+  .features-grid { grid-template-columns: 1fr; }
+  .l-stats-row { grid-template-columns: 1fr; }
+  .l-hero-title { font-size: clamp(2.2rem, 7vw, 3.4rem); }
+  .chat-topbar { padding: 13px 18px; }
+  .chat-messages-inner { padding: 0 16px; }
+  .chat-input-area { padding: 14px 16px calc(16px + var(--safe-bottom)); }
+  .msg.user .msg-content { max-width: 84%; }
+}
+
+/* iPad Air / Zenbook Fold — 820–853px */
+@media (min-width: 769px) and (max-width: 860px) {
+  .features-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
+  .l-hero-title { font-size: clamp(2.8rem, 5.5vw, 3.8rem); }
+  .bigfeature-stats { grid-template-columns: repeat(4, 1fr); }
+  .chat-messages-inner { max-width: 700px; }
+  .msg.user .msg-content { max-width: 76%; }
+}
+
+/* Surface Pro 7 — 912px */
+@media (min-width: 861px) and (max-width: 1024px) {
+  .features-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .bigfeature-inner { grid-template-columns: 1fr 1fr; }
+  .l-stats-row { grid-template-columns: repeat(4, 1fr); }
+  .l-nav-links { display: flex; }
+  .l-nav-hamburger { display: none; }
+
+  /* Chat: sidebar shows inline for Surface Pro 7 landscape-ish widths */
+  .chat-sidebar {
+    position: relative;
+    transform: none !important;
+    width: 240px; min-width: 240px;
+    box-shadow: none;
+  }
+  .mobile-menu-btn { display: none; }
+  .chat-topbar { padding: 14px 24px; }
+  .chat-messages-inner { padding: 0 22px; max-width: 660px; }
+  .chat-input-area { padding: 16px 22px 22px; }
+  .chat-input-inner { max-width: 660px; }
+}
+
+/* ============================================================
+   LARGE TABLETS / LANDSCAPE — 1024px+
+   iPad Pro (1024), Nest Hub Max (1280), Zenbook Fold landscape
+   ============================================================ */
+@media (min-width: 1025px) and (max-width: 1366px) {
+  /* Landing */
+  .l-nav { padding: 18px 40px; }
+  .l-hero { padding: 120px 52px 100px; }
+  .features-grid { grid-template-columns: repeat(3, 1fr); }
+  .bigfeature-inner { grid-template-columns: 1fr 1fr; }
+  .l-stats-row { grid-template-columns: repeat(4, 1fr); }
+  .l-footer-top { grid-template-columns: 1fr 1fr 1fr; }
+
+  /* Chat: sidebar always visible */
+  .chat-sidebar {
+    position: relative;
+    transform: none !important;
+    width: 260px; min-width: 260px;
+    box-shadow: none;
+  }
+  .mobile-menu-btn { display: none; }
+  .chat-messages-inner { max-width: 740px; }
+  .chat-input-inner { max-width: 740px; }
+}
+
+/* Nest Hub Max (1280×800 landscape) */
+@media (min-width: 1025px) and (max-width: 1366px) and (max-height: 900px) {
+  .chat-welcome { padding: 40px 24px 24px; }
+  .chat-messages { padding: 20px 0; }
+  .chat-messages-inner { gap: 18px; }
+  .chat-input-area { padding: 14px 24px 18px; }
+  /* Compact topbar for landscape */
+  .chat-topbar { padding: 12px 24px; }
+}
+
+/* ============================================================
+   TOUCH / POINTER — disable hover effects on touch
+   ============================================================ */
+@media (hover: none) and (pointer: coarse) {
+  .chat-send-btn:hover { transform: none; box-shadow: none; }
+  .sidebar-conv:hover { background: transparent; }
+  .topbar-action:hover { background: var(--bg3); color: var(--text2); border-color: var(--border); }
+  .chat-attach-btn:hover { color: var(--muted); background: transparent; }
+  .sidebar-new-chat:hover { background: var(--accent-dim); }
+  .feature-card:hover { transform: none; }
+}
+
+/* ============================================================
+   LANDSCAPE MODE — phones in landscape
+   ============================================================ */
+@media (max-height: 500px) and (max-width: 932px) {
+  .chat-welcome { padding: 20px 20px 12px; }
+  .chat-welcome h2 { font-size: 1rem; }
+  .chat-messages { padding: 10px 0; }
+  .chat-messages-inner { gap: 12px; }
+  .chat-input-area { padding: 8px 14px calc(8px + var(--safe-bottom)); }
+  #chat-input { max-height: 80px; }
+  .chat-topbar { padding: 8px 14px; }
+  /* Landing hero in landscape phone */
+  .l-hero { padding: 70px 24px 50px; }
+  .l-hero-title { font-size: clamp(1.5rem, 6vw, 2.2rem); }
+}
+
