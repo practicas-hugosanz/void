@@ -529,9 +529,11 @@ const app = {
   },
 
   async clearChat() {
-    // Delete all conversations on server
-    apiFetch(API.convs + '?action=clear', { method: 'POST' });
-    this.conversations = [];
+    // Delete only the current active conversation on server
+    if (this.activeConvId) {
+      await apiFetch(API.convs + '?action=delete&id=' + encodeURIComponent(this.activeConvId), { method: 'DELETE' });
+      this.conversations = this.conversations.filter(c => c.id !== this.activeConvId);
+    }
     await this.newConversation();
   },
 
