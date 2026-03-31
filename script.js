@@ -182,7 +182,6 @@ const app = {
   },
 
   async _generateAiTitle(convId) {
-    // Usar chatHistory directamente — es la fuente de verdad más actualizada
     const msgs = this.chatHistory.slice(0, 6).map(m => {
       if (Array.isArray(m.content)) {
         const txt = m.content.filter(p => p.type === 'text').map(p => p.text).join(' ');
@@ -191,7 +190,8 @@ const app = {
       return { role: m.role, content: typeof m.content === 'string' ? m.content : '(adjunto)' };
     });
 
-    if (!msgs.length) return;
+    console.log('[VOID title] Generando título, msgs:', msgs.length, 'provider:', this.apiProvider);
+    if (!msgs.length) { console.warn('[VOID title] Sin mensajes'); return; }
 
     try {
       const res = await apiFetch(API.proxy, {
@@ -204,20 +204,25 @@ const app = {
         }),
       });
 
+      console.log('[VOID title] Respuesta proxy:', JSON.stringify(res));
+
       const title = res?.data?.title || res?.title || '';
-      if (!title) return;
+      if (!title) { console.warn('[VOID title] Título vacío en respuesta'); return; }
 
       const conv = this.conversations.find(c => c.id === convId);
-      if (!conv) return;
+      if (!conv) { console.warn('[VOID title] Conv no encontrada:', convId); return; }
 
+      console.log('[VOID title] Título generado:', title);
       conv.title = title;
       this.updateSidebarHistory();
 
       apiFetch(API.convs + '?action=save', {
         method: 'POST',
         body: JSON.stringify({ id: conv.id, title: conv.title, messages: conv.messages }),
-      }).catch(() => {});
-    } catch (_) {}
+      }).catch(e => console.error('[VOID title] Error guardando título:', e));
+    } catch (e) {
+      console.error('[VOID title] Error:', e);
+    }
   },
 
   // ==========================================
