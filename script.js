@@ -446,7 +446,11 @@ const app = {
     this.currentUser.email = newEmail;
     this.updateSidebarUser();
     const welcomeH2 = document.querySelector('#chat-welcome h2');
-    if (welcomeH2) welcomeH2.innerHTML = 'Hola, ' + newName.split(' ')[0] + '<br>¿Por dónde empezamos?';
+    if (welcomeH2) {
+      const rawFirst = newName.split(' ')[0];
+      const firstName = rawFirst ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1).toLowerCase() : '';
+      welcomeH2.innerHTML = 'Hola, ' + firstName + '<br>¿Por dónde empezamos?';
+    }
     this.closeProfile();
     this.showToast('Perfil actualizado \u2756');
   },
@@ -546,7 +550,8 @@ const app = {
     const inner = document.getElementById('chat-messages-inner');
     inner.innerHTML = '';
     if (this.chatHistory.length === 0) {
-      const firstName = this.currentUser ? this.currentUser.name.split(' ')[0] : '';
+      const rawFirst = this.currentUser ? this.currentUser.name.split(' ')[0] : '';
+      const firstName = rawFirst ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1).toLowerCase() : '';
       inner.innerHTML = `<div id="chat-welcome" class="chat-welcome"><div class="chat-welcome-icon"><span class="chat-welcome-logo">VOID</span></div><h2>Hola, ${firstName}<br>¿Por dónde empezamos?</h2><p>Cuéntame qué tienes en mente — un problema, una idea, una pregunta.<br>Estoy aquí para ayudarte a pensar con claridad.</p></div>`;
     } else {
       this.chatHistory.forEach((msg, idx) => this.appendMessageUI(msg.role, msg.content, idx));

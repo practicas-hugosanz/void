@@ -242,7 +242,16 @@ tr:last-child td{border-bottom:none}tbody tr{transition:background .15s}tbody tr
 .modal-acts{display:flex;gap:8px;justify-content:flex-end}
 /* Responsive */
 @media(max-width:860px){.shell{grid-template-columns:1fr}.snav{display:none}.sg4{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}}
-@media(max-width:560px){.main{padding:16px}.sg4,.sg3{grid-template-columns:repeat(2,1fr);gap:8px}.hdr{padding:0 16px}table,thead,tbody,tr{display:block;width:100%}thead{display:none}tbody tr{display:flex;flex-direction:column;gap:4px;padding:12px;border-bottom:1px solid var(--border)}tbody tr:last-child{border-bottom:none}td{display:flex;align-items:flex-start;gap:8px;padding:0;border:none;background:transparent!important}td::before{content:attr(data-label);font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);min-width:72px;flex-shrink:0;padding-top:2px}td.te0{justify-content:center;padding:28px 0}td.te0::before{display:none}}
+@media(max-width:560px){.main{padding:16px 12px 80px}.sg4,.sg3{grid-template-columns:repeat(2,1fr);gap:8px}.hdr{padding:0 14px}table,thead,tbody,tr{display:block;width:100%}thead{display:none}tbody tr{display:flex;flex-direction:column;gap:4px;padding:12px;border-bottom:1px solid var(--border)}tbody tr:last-child{border-bottom:none}td{display:flex;align-items:flex-start;gap:8px;padding:0;border:none;background:transparent!important}td::before{content:attr(data-label);font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);min-width:72px;flex-shrink:0;padding-top:2px}td.te0{justify-content:center;padding:28px 0}td.te0::before{display:none}.act-name{min-width:80px}.act-email{font-size:10px}.sg2{grid-template-columns:repeat(2,1fr);gap:8px}.pg-title{font-size:17px}.sv{font-size:24px}}
+/* Mobile bottom nav */
+.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(10,10,14,0.96);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:6px 0 env(safe-area-inset-bottom,6px)}
+.mob-nav-inner{display:flex;align-items:stretch;justify-content:space-around}
+.mob-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px;font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);text-decoration:none;border-radius:8px;transition:color .15s,background .15s;flex:1;position:relative}
+.mob-nav-item svg{width:20px;height:20px;flex-shrink:0}
+.mob-nav-item.on{color:var(--accent)}
+.mob-nav-item.on svg{filter:drop-shadow(0 0 5px var(--accent-glow))}
+.mob-nav-badge{position:absolute;top:4px;right:calc(50% - 16px);background:var(--yellow);color:#000;font-size:8px;font-weight:700;min-width:14px;height:14px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1}
+@media(max-width:560px){.mob-nav{display:block}}
 </style>
 </head>
 <body>
@@ -465,6 +474,34 @@ tr:last-child td{border-bottom:none}tbody tr{transition:background .15s}tbody tr
 
 </main>
 </div>
+<?php endif; ?>
+
+<?php if($authed): ?>
+<nav class="mob-nav" id="mob-nav">
+  <div class="mob-nav-inner">
+    <a href="?tab=overview"  class="mob-nav-item <?= $activeTab==='overview'  ?'on':'' ?>">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Resumen
+    </a>
+    <a href="?tab=whitelist" class="mob-nav-item <?= $activeTab==='whitelist' ?'on':'' ?>">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <?php if($stats['pending']>0): ?><span class="mob-nav-badge"><?= $stats['pending'] ?></span><?php endif; ?>
+      Solicitudes
+    </a>
+    <a href="?tab=users"     class="mob-nav-item <?= $activeTab==='users'     ?'on':'' ?>">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Usuarios
+    </a>
+    <a href="?tab=activity"  class="mob-nav-item <?= $activeTab==='activity'  ?'on':'' ?>">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Actividad
+    </a>
+    <a href="?tab=stats"     class="mob-nav-item <?= $activeTab==='stats'     ?'on':'' ?>">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+      Stats
+    </a>
+  </div>
+</nav>
 <?php endif; ?>
 
 <script>
