@@ -603,6 +603,11 @@ const app = {
     const text = input.value.trim();
     const hasFiles = this.pendingFiles.length > 0;
     if (!text && !hasFiles) return;
+    // Bloquear envío si algún documento todavía se está extrayendo
+    if (this.pendingFiles.some(f => f.extracting)) {
+      this.showToast('⏳ Espera — todavía extrayendo el documento…');
+      return;
+    }
 
     const attachedFiles = [...this.pendingFiles];
     const displayText = text || (attachedFiles.length === 1 ? attachedFiles[0].name : attachedFiles.length + ' archivos adjuntos');
@@ -697,10 +702,12 @@ const app = {
       files.forEach(f => {
         if (f.isImage && f.base64) {
           content.push({ type: 'image_url', image_url: { url: `data:${f.mimeType};base64,${f.base64}`, detail: 'auto' } });
-        } else if (f.isBinaryDoc && f.base64) {
-          content.push({ type: 'doc_extract', name: f.name, mimeType: f.mimeType, base64: f.base64 });
         } else if (f.content) {
-          content.push({ type: 'text', text: `\n[Contenido de ${f.name}]:\n${f.content.slice(0, 6000)}` });
+          // Texto ya extraído (PDF, DOCX, XLSX, TXT…)
+          const label = f.isBinaryDoc ? `[Documento: ${f.name}]` : `[Archivo: ${f.name}]`;
+          content.push({ type: 'text', text: `\n${label}\n${f.content.slice(0, 28000)}` });
+        } else if (f.extracting) {
+          content.push({ type: 'text', text: `[${f.name}: todavía extrayendo texto, inténtalo en un momento]` });
         }
       });
       if (!content.length) content.push({ type: 'text', text: text || '(Analiza los archivos adjuntos)' });
@@ -1055,36 +1062,105 @@ const app = {
   },
 
   async handleFiles(fileList) {
-    const MAX = 5, MAX_MB = 20;
-    const BINARY_TYPES = ['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/msword','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.ms-excel'];
+    const MAX = 5, MAX_MB = 30;
     const files = Array.from(fileList).slice(0, MAX - this.pendingFiles.length);
     for (const file of files) {
-      if (file.size > MAX_MB * 1024 * 1024) { this.showToast('⚠️ ' + file.name + ' supera los 20MB'); continue; }
+      if (file.size > MAX_MB * 1024 * 1024) { this.showToast('⚠️ ' + file.name + ' supera los 30MB'); continue; }
       const isImage = file.type.startsWith('image/');
-      const isBinaryDoc = BINARY_TYPES.includes(file.type) || /\.(pdf|docx?|xlsx?)$/i.test(file.name);
-      const fileData = await this.readFile(file, isImage, isBinaryDoc);
-      this.pendingFiles.push({ name: file.name, size: file.size, type: file.type, mimeType: file.type, isImage, isBinaryDoc, ...fileData });
+      const ext     = file.name.split('.').pop().toLowerCase();
+      const isPdf   = ext === 'pdf'  || file.type === 'application/pdf';
+      const isDocx  = ext === 'docx' || file.type.includes('wordprocessingml');
+      const isXlsx  = ['xlsx','xls'].includes(ext) || file.type.includes('spreadsheetml') || file.type.includes('ms-excel');
+      const isBinaryDoc = isPdf || isDocx || isXlsx;
+
+      if (isImage) {
+        const data = await this._readAsBase64(file);
+        this.pendingFiles.push({ name: file.name, size: file.size, type: file.type, mimeType: file.type, isImage, isBinaryDoc: false, ...data });
+        this.renderAttachmentPreviews();
+      } else if (isPdf || isDocx || isXlsx) {
+        const idx = this.pendingFiles.length;
+        this.pendingFiles.push({ name: file.name, size: file.size, type: file.type, mimeType: file.type, isImage: false, isBinaryDoc: true, base64: null, content: null, extracting: true });
+        this.renderAttachmentPreviews();
+        const extractFn = isPdf ? this._extractPdfText(file) : this._extractOoxmlText(file, isXlsx);
+        extractFn.then(text => {
+          if (this.pendingFiles[idx] && this.pendingFiles[idx].extracting) {
+            this.pendingFiles[idx].content = text;
+            this.pendingFiles[idx].extracting = false;
+            this.renderAttachmentPreviews();
+          }
+        });
+      } else {
+        const data = await this._readAsText(file);
+        this.pendingFiles.push({ name: file.name, size: file.size, type: file.type, mimeType: file.type, isImage: false, isBinaryDoc: false, ...data });
+        this.renderAttachmentPreviews();
+      }
     }
-    this.renderAttachmentPreviews();
-    // Reset input so same file can be re-added
     document.getElementById('file-input').value = '';
   },
 
-  readFile(file, isImage, isBinaryDoc = false) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      if (isImage || isBinaryDoc) {
-        reader.onload = e => {
-          const base64 = e.target.result.split(',')[1];
-          resolve({ base64, content: null });
-        };
-        reader.readAsDataURL(file);
-      } else {
-        reader.onload = e => resolve({ content: e.target.result, base64: null });
-        reader.onerror = () => resolve({ content: '[No se pudo leer el archivo]', base64: null });
-        reader.readAsText(file, 'UTF-8');
-      }
+  _readAsBase64(file) {
+    return new Promise(resolve => {
+      const r = new FileReader();
+      r.onload = e => resolve({ base64: e.target.result.split(',')[1], content: null, extracting: false });
+      r.onerror = () => resolve({ base64: null, content: null, extracting: false });
+      r.readAsDataURL(file);
     });
+  },
+
+  _readAsText(file) {
+    return new Promise(resolve => {
+      const r = new FileReader();
+      r.onload = e => resolve({ base64: null, content: e.target.result, extracting: false });
+      r.onerror = () => resolve({ base64: null, content: '[No se pudo leer el archivo]', extracting: false });
+      r.readAsText(file, 'UTF-8');
+    });
+  },
+
+  async _extractPdfText(file) {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfjsLib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.mjs');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs';
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+      const maxPages = Math.min(pdf.numPages, 100);
+      for (let i = 1; i <= maxPages; i++) {
+        const page = await pdf.getPage(i);
+        const tc = await page.getTextContent();
+        fullText += tc.items.map(item => item.str).join(' ') + '\n';
+      }
+      const trimmed = fullText.trim();
+      if (!trimmed) return '[PDF sin texto extraíble — puede ser un PDF escaneado o de solo imagen]';
+      return trimmed.length > 30000 ? trimmed.slice(0, 30000) + '\n\n[... truncado a 30.000 caracteres]' : trimmed;
+    } catch (e) {
+      return '[Error al leer el PDF: ' + e.message + ']';
+    }
+  },
+
+  async _extractOoxmlText(file, isXlsx) {
+    try {
+      if (typeof JSZip === 'undefined') return '[JSZip no disponible — recarga la página e inténtalo de nuevo]';
+      const arrayBuffer = await file.arrayBuffer();
+      const zip = await JSZip.loadAsync(arrayBuffer);
+      let xmlContent = '';
+      if (isXlsx) {
+        const ss = zip.file('xl/sharedStrings.xml');
+        if (ss) xmlContent += await ss.async('string');
+        const sh = zip.file('xl/worksheets/sheet1.xml');
+        if (sh) xmlContent += await sh.async('string');
+      } else {
+        const doc = zip.file('word/document.xml');
+        if (doc) xmlContent = await doc.async('string');
+      }
+      if (!xmlContent) return '[No se pudo extraer contenido del documento]';
+      const text = xmlContent
+        .replace(/<\/w:p>/g, '\n').replace(/<\/w:r>/g, ' ').replace(/<[^>]+>/g, '')
+        .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'")
+        .replace(/\n{3,}/g, '\n\n').trim();
+      return text.length > 30000 ? text.slice(0, 30000) + '\n\n[... truncado]' : text;
+    } catch (e) {
+      return '[Error al leer el documento: ' + e.message + ']';
+    }
   },
 
   renderAttachmentPreviews() {
@@ -1096,7 +1172,10 @@ const app = {
       if (f.isImage && f.base64) {
         chip.innerHTML = `<img class="attach-chip-thumb" src="data:${f.mimeType};base64,${f.base64}"><span class="attach-chip-name">${this.escapeHtml(f.name)}</span><span class="attach-chip-size">${this.formatSize(f.size)}</span><button class="attach-chip-remove" onclick="app.removeAttachment(${i})"><svg style="width:12px;height:12px"><use href="#ico-close"/></svg></button>`;
       } else if (f.isBinaryDoc) {
-        chip.innerHTML = `<span class="attach-chip-icon">${this.getFileIcon(f.name)}</span><span class="attach-chip-name">${this.escapeHtml(f.name)}</span><span class="attach-chip-size attach-chip-badge">Extracción en servidor</span><button class="attach-chip-remove" onclick="app.removeAttachment(${i})"><svg style="width:12px;height:12px"><use href="#ico-close"/></svg></button>`;
+        const badge = f.extracting
+          ? `<span class="attach-chip-badge extracting">⏳ Extrayendo…</span>`
+          : `<span class="attach-chip-badge ready">✓ Listo</span>`;
+        chip.innerHTML = `<span class="attach-chip-icon">${this.getFileIcon(f.name)}</span><span class="attach-chip-name">${this.escapeHtml(f.name)}</span>${badge}<button class="attach-chip-remove" onclick="app.removeAttachment(${i})"><svg style="width:12px;height:12px"><use href="#ico-close"/></svg></button>`;
       } else {
         chip.innerHTML = `<span class="attach-chip-icon">${this.getFileIcon(f.name)}</span><span class="attach-chip-name">${this.escapeHtml(f.name)}</span><span class="attach-chip-size">${this.formatSize(f.size)}</span><button class="attach-chip-remove" onclick="app.removeAttachment(${i})"><svg style="width:12px;height:12px"><use href="#ico-close"/></svg></button>`;
       }
@@ -1177,7 +1256,7 @@ const app = {
       if (f.isImage) {
         ctx += `\n• Imagen adjunta: ${f.name}\n`;
       } else if (f.isBinaryDoc) {
-        ctx += `\n• Documento adjunto: ${f.name} (el texto será extraído automáticamente en el servidor)\n`;
+        ctx += `\n• Documento adjunto: ${f.name}${f.extracting ? ' (extrayendo…)' : f.content ? ' (' + Math.round(f.content.length/1000) + 'k caracteres extraídos)' : ''}\n`;
       } else {
         const preview = f.content ? f.content.slice(0, 8000) : '';
         ctx += `\n• Archivo: ${f.name}\n\`\`\`\n${preview}${f.content && f.content.length > 8000 ? '\n...[truncado a 8000 chars]' : ''}\n\`\`\`\n`;
