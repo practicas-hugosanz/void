@@ -92,7 +92,7 @@ if ((body()['action'] ?? '') === 'title') {
         }
         $text = trim(preg_replace('/\s+/', ' ', $text));
         if (!$text) continue;
-        $excerpt .= "$role: " . mb_substr($text, 0, 300) . "\n";
+        $excerpt .= "$role: " . substr($text, 0, 300) . "\n";
     }
 
     $dm = ['gemini'=>'gemini-2.5-flash','openai'=>'gpt-4o','anthropic'=>'claude-haiku-4-5-20251001'];
@@ -111,7 +111,7 @@ if ((body()['action'] ?? '') === 'title') {
 
     $title = trim(preg_replace('/^["\'\s«»]+|["\'\s»«]+$/', '', trim((string)$title)));
     if (!$title) $title = 'Conversación';
-    json_ok(['title' => mb_substr($title, 0, 60)]);
+    json_ok(['title' => substr($title, 0, 60)]);
 }
 
 // ─── Chat normal ──────────────────────────────────────────────────────────────
