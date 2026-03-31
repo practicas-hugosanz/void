@@ -506,11 +506,27 @@ tr:last-child td{border-bottom:none}tbody tr{transition:background .15s}tbody tr
 
 <script>
 const cursor=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
-if(window.matchMedia('(pointer:fine)').matches){
-  let mx=0,my=0,rx=0,ry=0;
-  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
-  (function loop(){rx+=(mx-rx)*.18;ry+=(my-ry)*.18;cursor.style.transform=`translate(${mx}px,${my}px) translate(-50%,-50%)`;ring.style.transform=`translate(${rx}px,${ry}px) translate(-50%,-50%)`;requestAnimationFrame(loop);})();
+let mx=0,my=0,rx=0,ry=0,_cursorActive=false;
+
+function _startCursor(){
+  if(_cursorActive)return;
+  _cursorActive=true;
+  document.addEventListener('mousemove',e=>{
+    mx=e.clientX;my=e.clientY;
+    cursor.style.transform=`translate(${mx}px,${my}px) translate(-50%,-50%)`;
+  });
+  (function loop(){rx+=(mx-rx)*.18;ry+=(my-ry)*.18;ring.style.transform=`translate(${rx}px,${ry}px) translate(-50%,-50%)`;requestAnimationFrame(loop);})();
+  cursor.style.opacity='1';ring.style.opacity='1';
 }
+function _stopCursor(){
+  _cursorActive=false;
+  if(cursor)cursor.style.opacity='0';
+  if(ring)ring.style.opacity='0';
+}
+
+const mq=window.matchMedia('(pointer:fine)');
+if(mq.matches)_startCursor();else _stopCursor();
+mq.addEventListener('change',e=>{ if(e.matches)_startCursor(); else _stopCursor(); });
 
 function openMod(action,email,uid,tab,title,body){
   document.getElementById('m-title').textContent=title;
