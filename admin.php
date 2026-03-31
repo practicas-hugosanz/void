@@ -116,7 +116,7 @@ $provColors = ['gemini'=>'var(--blue)','openai'=>'var(--green)','anthropic'=>'va
 <link rel="icon" href="favicon.png" type="image/png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;cursor:none!important}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}@media(pointer:fine){*,*::before,*::after{cursor:none!important}}
 :root{
   --bg:#060608;--bg2:#0d0d10;--bg3:#141418;
   --surface:#1a1a20;--surface2:#202028;
@@ -137,6 +137,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);overflo
 body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.35}
 #cursor{position:fixed;width:10px;height:10px;background:var(--accent);border-radius:50%;pointer-events:none;z-index:99999;top:0;left:0;transform:translate(-50%,-50%);mix-blend-mode:difference}
 #cursor-ring{position:fixed;width:32px;height:32px;border:1px solid rgba(232,255,71,0.5);border-radius:50%;pointer-events:none;z-index:99998;top:0;left:0;transform:translate(-50%,-50%)}
+@media(pointer:coarse){#cursor,#cursor-ring{display:none}}
 .ico{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 /* Header */
 .hdr{position:sticky;top:0;z-index:100;background:rgba(6,6,8,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 28px;height:58px;display:flex;align-items:center;gap:14px}
@@ -241,7 +242,7 @@ tr:last-child td{border-bottom:none}tbody tr{transition:background .15s}tbody tr
 .modal-body{color:var(--text2);font-size:13px;margin-bottom:22px;line-height:1.6}
 .modal-acts{display:flex;gap:8px;justify-content:flex-end}
 /* Responsive */
-@media(max-width:860px){.shell{grid-template-columns:1fr}.snav{display:none}.sg4{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}}
+@media(max-width:860px){.shell{grid-template-columns:1fr}.snav{display:none!important}.sg4{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}.main{padding-bottom:80px}.mob-nav{display:block}}
 @media(max-width:560px){.main{padding:16px 12px 80px}.sg4,.sg3{grid-template-columns:repeat(2,1fr);gap:8px}.hdr{padding:0 14px}table,thead,tbody,tr{display:block;width:100%}thead{display:none}tbody tr{display:flex;flex-direction:column;gap:4px;padding:12px;border-bottom:1px solid var(--border)}tbody tr:last-child{border-bottom:none}td{display:flex;align-items:flex-start;gap:8px;padding:0;border:none;background:transparent!important}td::before{content:attr(data-label);font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);min-width:72px;flex-shrink:0;padding-top:2px}td.te0{justify-content:center;padding:28px 0}td.te0::before{display:none}.act-name{min-width:80px}.act-email{font-size:10px}.sg2{grid-template-columns:repeat(2,1fr);gap:8px}.pg-title{font-size:17px}.sv{font-size:24px}}
 /* Mobile bottom nav */
 .mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(10,10,14,0.96);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:6px 0 env(safe-area-inset-bottom,6px)}
@@ -251,7 +252,7 @@ tr:last-child td{border-bottom:none}tbody tr{transition:background .15s}tbody tr
 .mob-nav-item.on{color:var(--accent)}
 .mob-nav-item.on svg{filter:drop-shadow(0 0 5px var(--accent-glow))}
 .mob-nav-badge{position:absolute;top:4px;right:calc(50% - 16px);background:var(--yellow);color:#000;font-size:8px;font-weight:700;min-width:14px;height:14px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1}
-@media(max-width:560px){.mob-nav{display:block}}
+/* mob-nav shown via @media(max-width:860px) above */
 </style>
 </head>
 <body>
@@ -506,9 +507,11 @@ tr:last-child td{border-bottom:none}tbody tr{transition:background .15s}tbody tr
 
 <script>
 const cursor=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
-let mx=0,my=0,rx=0,ry=0;
-document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
-(function loop(){rx+=(mx-rx)*.18;ry+=(my-ry)*.18;cursor.style.transform=`translate(${mx}px,${my}px) translate(-50%,-50%)`;ring.style.transform=`translate(${rx}px,${ry}px) translate(-50%,-50%)`;requestAnimationFrame(loop);})();
+if(window.matchMedia('(pointer:fine)').matches){
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+  (function loop(){rx+=(mx-rx)*.18;ry+=(my-ry)*.18;cursor.style.transform=`translate(${mx}px,${my}px) translate(-50%,-50%)`;ring.style.transform=`translate(${rx}px,${ry}px) translate(-50%,-50%)`;requestAnimationFrame(loop);})();
+}
 
 function openMod(action,email,uid,tab,title,body){
   document.getElementById('m-title').textContent=title;
