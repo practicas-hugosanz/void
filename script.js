@@ -187,32 +187,41 @@ const app = {
   },
 
   async _generateAiTitle(convId) {
-    const conv = this.conversations.find(c => c.id === convId);
-    if (!conv) return;
+    // Usar chatHistory directamente — es la fuente de verdad más actualizada
+    const msgs = this.chatHistory.slice(0, 6).map(m => {
+      if (Array.isArray(m.content)) {
+        const txt = m.content.filter(p => p.type === 'text').map(p => p.text).join(' ');
+        return { role: m.role, content: txt || '(adjunto)' };
+      }
+      return { role: m.role, content: typeof m.content === 'string' ? m.content : '(adjunto)' };
+    });
+
+    if (!msgs.length) return;
+
     try {
-      // Pasar el primer intercambio completo (usuario + respuesta IA) al generador de título
-      const titleMsgs = conv.messages.slice(0, 6).map(m => {
-        // Aplanar content array a texto para el prompt de título (ignorar imágenes)
-        if (Array.isArray(m.content)) {
-          const txt = m.content.filter(p => p.type === 'text').map(p => p.text).join(' ');
-          return { role: m.role, content: txt || '(adjunto)' };
-        }
-        return m;
-      });
       const res = await apiFetch(API.proxy, {
         method: 'POST',
-        body: JSON.stringify({ action: 'title', messages: titleMsgs }),
+        body: JSON.stringify({
+          action: 'title',
+          messages: msgs,
+          provider: this.apiProvider,
+          model: this.apiModel || defaultModel(this.apiProvider),
+        }),
       });
-      if (res?.ok && res?.data?.title) {
-        conv.title = res.data.title;
-        apiFetch(API.convs + '?action=save', {
-          method: 'POST',
-          body: JSON.stringify({ id: conv.id, title: conv.title, messages: conv.messages }),
-        }).then(res => {
-          if (!res.ok) console.error('[VOID] Error guardando título IA:', res.error);
-        });
-        this.updateSidebarHistory();
-      }
+
+      const title = res?.data?.title || res?.title || '';
+      if (!title) return;
+
+      const conv = this.conversations.find(c => c.id === convId);
+      if (!conv) return;
+
+      conv.title = title;
+      this.updateSidebarHistory();
+
+      apiFetch(API.convs + '?action=save', {
+        method: 'POST',
+        body: JSON.stringify({ id: conv.id, title: conv.title, messages: conv.messages }),
+      }).catch(() => {});
     } catch (_) {}
   },
 
