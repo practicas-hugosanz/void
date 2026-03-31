@@ -1018,6 +1018,7 @@ body::before {
   flex: 1; min-width: 0;
 }
 .attach-chip-size { color: var(--muted); font-size: 0.7rem; flex-shrink: 0; }
+.attach-chip-badge { color: var(--accent); font-size: 0.65rem; font-weight: 500; letter-spacing: 0.02em; opacity: 0.85; }
 .attach-chip-remove {
   background: none; border: none; color: var(--muted);
   display: flex; align-items: center; flex-shrink: 0;
