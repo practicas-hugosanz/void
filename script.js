@@ -178,12 +178,7 @@ const app = {
       if (!res.ok) console.error('[VOID] Error guardando conversación:', res.error);
     }).catch(err => console.error('[VOID] Error guardando conversación:', err));
 
-    // Generar título con IA exactamente tras el primer intercambio completo
-    const assistantMsgs = this.chatHistory.filter(m => m.role === 'assistant').length;
-    if (assistantMsgs === 1 && !this.conversations[idx]._aiTitled && this.useProxy) {
-      this.conversations[idx]._aiTitled = true;
-      this._generateAiTitle(this.conversations[idx].id);
-    }
+    // (El título con IA se genera desde sendMessage, tras recibir la respuesta completa)
   },
 
   async _generateAiTitle(convId) {
@@ -679,6 +674,13 @@ const app = {
       this._renderMarkdownInBubble(this._lastStreamBubble, responseText);
       this._addMsgActions(this._lastStreamBubble.closest('.msg-content'), true, aiIdx);
       this._lastStreamBubble = null;
+    }
+
+    // Generar título con IA tras el primer intercambio completo
+    const convIdx = this.conversations.findIndex(c => c.id === this.activeConvId);
+    if (convIdx !== -1 && !this.conversations[convIdx]._aiTitled && this.useProxy && responseText && !responseText.startsWith('⚠️')) {
+      this.conversations[convIdx]._aiTitled = true;
+      this._generateAiTitle(this.activeConvId);
     }
 
     await this.syncCurrentConv();
