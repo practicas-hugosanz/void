@@ -74,24 +74,42 @@ if ((body()['action'] ?? '') === 'title') {
     $messages = body()['messages'] ?? [];
     if (empty($messages)) json_err('Sin mensajes para generar título');
 
+    // Extraer texto de los mensajes, ignorando partes de imagen/archivo
     $excerpt = '';
-    foreach (array_slice($messages, 0, 4) as $m) {
-        $role    = $m['role'] === 'assistant' ? 'Asistente' : 'Usuario';
-        $content = is_string($m['content']) ? $m['content'] : '';
-        $excerpt .= "$role: " . mb_substr($content, 0, 200) . "\n";
+    foreach (array_slice($messages, 0, 6) as $m) {
+        $role = $m['role'] === 'assistant' ? 'Asistente' : 'Usuario';
+        $rawContent = $m['content'];
+        if (is_string($rawContent)) {
+            $text = $rawContent;
+        } elseif (is_array($rawContent)) {
+            $parts = [];
+            foreach ($rawContent as $part) {
+                if (($part['type'] ?? '') === 'text') $parts[] = $part['text'] ?? '';
+            }
+            $text = implode(' ', $parts);
+        } else {
+            continue;
+        }
+        $text = trim(preg_replace('/\s+/', ' ', $text));
+        if (!$text) continue;
+        $excerpt .= "$role: " . mb_substr($text, 0, 300) . "\n";
     }
+
     $dm = ['gemini'=>'gemini-2.5-flash','openai'=>'gpt-4o','anthropic'=>'claude-haiku-4-5-20251001'];
     if (!$model) $model = $dm[$provider] ?? 'gemini-2.5-flash';
 
     $titlePrompt = [['role'=>'user','content'=>
-        "Genera un título MUY corto (3-5 palabras) para esta conversación. ".
-        "Solo devuelve el título, sin comillas ni puntuación final.\n\n$excerpt"]];
+        "Genera un título corto y descriptivo (3-6 palabras) para esta conversación.\n" .
+        "El título debe describir el TEMA o RESULTADO, NO copiar literalmente lo que pidió el usuario.\n" .
+        "Bueno: 'Suma de dos números', 'Corrección de código Python', 'Análisis de contrato PDF'.\n" .
+        "Malo (demasiado literal): 'Hazme 1+1', 'Corrígeme este código', 'Analiza este PDF'.\n" .
+        "Responde SOLO con el título, sin comillas, sin puntuación final.\n\n$excerpt"]];
 
     if ($provider === 'openai')        $title = call_openai($apiKey, $titlePrompt, $model);
     elseif ($provider === 'anthropic') $title = call_anthropic($apiKey, $titlePrompt, $model);
     else                               $title = call_gemini($apiKey, $titlePrompt, $model);
 
-    $title = trim(preg_replace('/^["\'«»]+|["\'»«]+$/', '', trim((string)$title)));
+    $title = trim(preg_replace('/^["\'\s«»]+|["\'\s»«]+$/', '', trim((string)$title)));
     if (!$title) $title = 'Conversación';
     json_ok(['title' => mb_substr($title, 0, 60)]);
 }

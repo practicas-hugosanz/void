@@ -162,7 +162,11 @@ const app = {
     // Título provisional basado en el primer mensaje del usuario
     const firstUser = this.chatHistory.find(m => m.role === 'user');
     if (firstUser && !this.conversations[idx]._aiTitled) {
-      this.conversations[idx].title = firstUser.content.slice(0, 40) + (firstUser.content.length > 40 ? '…' : '');
+      const _raw = firstUser.content;
+      const _plain = Array.isArray(_raw)
+        ? (_raw.find(p => p.type === 'text')?.text || 'Archivos adjuntos')
+        : (typeof _raw === 'string' ? _raw : 'Conversación');
+      this.conversations[idx].title = _plain.slice(0, 40) + (_plain.length > 40 ? '…' : '');
     }
 
     if (this.currentUser) localStorage.setItem('void_active_' + this.currentUser.email, this.activeConvId);
@@ -186,9 +190,18 @@ const app = {
     const conv = this.conversations.find(c => c.id === convId);
     if (!conv) return;
     try {
+      // Pasar el primer intercambio completo (usuario + respuesta IA) al generador de título
+      const titleMsgs = conv.messages.slice(0, 6).map(m => {
+        // Aplanar content array a texto para el prompt de título (ignorar imágenes)
+        if (Array.isArray(m.content)) {
+          const txt = m.content.filter(p => p.type === 'text').map(p => p.text).join(' ');
+          return { role: m.role, content: txt || '(adjunto)' };
+        }
+        return m;
+      });
       const res = await apiFetch(API.proxy, {
         method: 'POST',
-        body: JSON.stringify({ action: 'title', messages: conv.messages.slice(0, 4) }),
+        body: JSON.stringify({ action: 'title', messages: titleMsgs }),
       });
       if (res?.ok && res?.data?.title) {
         conv.title = res.data.title;
