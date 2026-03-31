@@ -151,6 +151,7 @@ const app = {
   async saveConversations() {
     if (!this.currentUser || !this.activeConvId) return;
     localStorage.setItem('void_active_' + this.currentUser.email, this.activeConvId || '');
+    await this.syncCurrentConv();
   },
 
   async syncCurrentConv() {
