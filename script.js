@@ -605,7 +605,7 @@ const app = {
     if (!text && !hasFiles) return;
     // Bloquear envío si algún documento todavía se está extrayendo
     if (this.pendingFiles.some(f => f.extracting)) {
-      this.showToast('⏳ Espera — todavía extrayendo el documento…');
+      this.showToast('Espera — todavía extrayendo el documento…');
       return;
     }
 
@@ -701,9 +701,20 @@ const app = {
       if (text) content.push({ type: 'text', text });
       files.forEach(f => {
         if (f.isImage && f.base64) {
+          // Imagen adjunta directa
           content.push({ type: 'image_url', image_url: { url: `data:${f.mimeType};base64,${f.base64}`, detail: 'auto' } });
+        } else if (f.pageImages && f.pageImages.length) {
+          // PDF con páginas renderizadas — enviar texto + imágenes de cada página
+          const totalPages = f.pageCount || f.pageImages.length;
+          const label = `[PDF: ${f.name} — ${totalPages} páginas${totalPages > f.pageImages.length ? `, mostrando ${f.pageImages.length} como imágenes` : ''}]`;
+          if (f.content) content.push({ type: 'text', text: `\n${label}\nTexto extraído:\n${f.content.slice(0, 15000)}` });
+          else content.push({ type: 'text', text: `\n${label}` });
+          f.pageImages.forEach((b64, pi) => {
+            content.push({ type: 'text', text: `[Página ${pi + 1}]` });
+            content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}`, detail: 'high' } });
+          });
         } else if (f.content) {
-          // Texto ya extraído (PDF, DOCX, XLSX, TXT…)
+          // Texto extraído sin imágenes (DOCX, XLSX, TXT…)
           const label = f.isBinaryDoc ? `[Documento: ${f.name}]` : `[Archivo: ${f.name}]`;
           content.push({ type: 'text', text: `\n${label}\n${f.content.slice(0, 28000)}` });
         } else if (f.extracting) {
@@ -1049,10 +1060,16 @@ const app = {
   // ==========================================
   pendingFiles: [], // [{name, size, type, content, base64, mimeType, isImage}]
 
-  getFileIcon(name) {
+  getFileIcon(name, size = 14) {
     const ext = name.split('.').pop().toLowerCase();
-    const map = { pdf: '📄', jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', csv: '📊', json: '📋', js: '💻', ts: '💻', py: '🐍', html: '🌐', css: '🎨', md: '📝', txt: '📄', docx: '📝', xml: '📋', yaml: '⚙️', yml: '⚙️' };
-    return map[ext] || '📎';
+    const s = `width:${size}px;height:${size}px;flex-shrink:0;vertical-align:middle;`;
+    const svg = (id) => `<svg style="${s}" viewBox="0 0 24 24"><use href="#${id}"/></svg>`;
+    if (ext === 'pdf')                                          return svg('ico-file-pdf');
+    if (['doc','docx'].includes(ext))                          return svg('ico-file-doc');
+    if (['xls','xlsx','csv'].includes(ext))                    return svg('ico-file-sheet');
+    if (['js','ts','py','html','css','json','xml','yaml','yml'].includes(ext)) return svg('ico-file-code');
+    if (['jpg','jpeg','png','gif','webp'].includes(ext))        return svg('ico-file-img');
+    return svg('ico-file-text');
   },
 
   formatSize(bytes) {
@@ -1081,14 +1098,30 @@ const app = {
         const idx = this.pendingFiles.length;
         this.pendingFiles.push({ name: file.name, size: file.size, type: file.type, mimeType: file.type, isImage: false, isBinaryDoc: true, base64: null, content: null, extracting: true });
         this.renderAttachmentPreviews();
-        const extractFn = isPdf ? this._extractPdfText(file) : this._extractOoxmlText(file, isXlsx);
-        extractFn.then(text => {
-          if (this.pendingFiles[idx] && this.pendingFiles[idx].extracting) {
-            this.pendingFiles[idx].content = text;
-            this.pendingFiles[idx].extracting = false;
-            this.renderAttachmentPreviews();
-          }
-        });
+        if (isPdf) {
+          this._extractPdfText(file).then(result => {
+            if (this.pendingFiles[idx] && this.pendingFiles[idx].extracting) {
+              if (typeof result === 'string') {
+                this.pendingFiles[idx].content = result;
+              } else {
+                this.pendingFiles[idx].content     = result.text;
+                this.pendingFiles[idx].pageImages  = result.images || [];
+                this.pendingFiles[idx].pageCount   = result.pageCount;
+                this.pendingFiles[idx].isVisualPdf = result.isVisualPdf;
+              }
+              this.pendingFiles[idx].extracting = false;
+              this.renderAttachmentPreviews();
+            }
+          });
+        } else {
+          this._extractOoxmlText(file, isXlsx).then(text => {
+            if (this.pendingFiles[idx] && this.pendingFiles[idx].extracting) {
+              this.pendingFiles[idx].content    = text;
+              this.pendingFiles[idx].extracting = false;
+              this.renderAttachmentPreviews();
+            }
+          });
+        }
       } else {
         const data = await this._readAsText(file);
         this.pendingFiles.push({ name: file.name, size: file.size, type: file.type, mimeType: file.type, isImage: false, isBinaryDoc: false, ...data });
@@ -1122,18 +1155,45 @@ const app = {
       const pdfjsLib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.mjs');
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs';
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+      // Extraer texto de todas las páginas (hasta 100)
       let fullText = '';
       const maxPages = Math.min(pdf.numPages, 100);
       for (let i = 1; i <= maxPages; i++) {
         const page = await pdf.getPage(i);
         const tc = await page.getTextContent();
-        fullText += tc.items.map(item => item.str).join(' ') + '\n';
+        const pageText = tc.items.map(item => item.str).join(' ').trim();
+        if (pageText) fullText += `[Página ${i}]\n${pageText}\n\n`;
       }
-      const trimmed = fullText.trim();
-      if (!trimmed) return '[PDF sin texto extraíble — puede ser un PDF escaneado o de solo imagen]';
-      return trimmed.length > 30000 ? trimmed.slice(0, 30000) + '\n\n[... truncado a 30.000 caracteres]' : trimmed;
+
+      // Detectar si es PDF visual/escaneado (poco texto)
+      const avgCharsPerPage = fullText.length / maxPages;
+      const isVisualPdf = avgCharsPerPage < 80;
+
+      // Renderizar páginas como imágenes (máx. 10 para no saturar el contexto)
+      const renderPages = Math.min(pdf.numPages, 10);
+      const pageImages = [];
+      for (let i = 1; i <= renderPages; i++) {
+        const page = await pdf.getPage(i);
+        const scale = 1.5;
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width  = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        pageImages.push(canvas.toDataURL('image/jpeg', 0.82).split(',')[1]);
+        canvas.remove();
+      }
+
+      return {
+        text: fullText.trim().slice(0, 30000) || null,
+        images: pageImages,
+        pageCount: pdf.numPages,
+        isVisualPdf,
+      };
     } catch (e) {
-      return '[Error al leer el PDF: ' + e.message + ']';
+      return { text: '[Error al leer el PDF: ' + e.message + ']', images: [], pageCount: 0, isVisualPdf: false };
     }
   },
 
@@ -1173,8 +1233,8 @@ const app = {
         chip.innerHTML = `<img class="attach-chip-thumb" src="data:${f.mimeType};base64,${f.base64}"><span class="attach-chip-name">${this.escapeHtml(f.name)}</span><span class="attach-chip-size">${this.formatSize(f.size)}</span><button class="attach-chip-remove" onclick="app.removeAttachment(${i})"><svg style="width:12px;height:12px"><use href="#ico-close"/></svg></button>`;
       } else if (f.isBinaryDoc) {
         const badge = f.extracting
-          ? `<span class="attach-chip-badge extracting">⏳ Extrayendo…</span>`
-          : `<span class="attach-chip-badge ready">✓ Listo</span>`;
+          ? `<span class="attach-chip-badge extracting"><svg class="chip-spinner" style="width:11px;height:11px" viewBox="0 0 24 24"><use href="#ico-spinner"/></svg> Extrayendo…</span>`
+          : `<span class="attach-chip-badge ready"><svg style="width:11px;height:11px" viewBox="0 0 24 24"><use href="#ico-check-sm"/></svg> Listo</span>`;
         chip.innerHTML = `<span class="attach-chip-icon">${this.getFileIcon(f.name)}</span><span class="attach-chip-name">${this.escapeHtml(f.name)}</span>${badge}<button class="attach-chip-remove" onclick="app.removeAttachment(${i})"><svg style="width:12px;height:12px"><use href="#ico-close"/></svg></button>`;
       } else {
         chip.innerHTML = `<span class="attach-chip-icon">${this.getFileIcon(f.name)}</span><span class="attach-chip-name">${this.escapeHtml(f.name)}</span><span class="attach-chip-size">${this.formatSize(f.size)}</span><button class="attach-chip-remove" onclick="app.removeAttachment(${i})"><svg style="width:12px;height:12px"><use href="#ico-close"/></svg></button>`;

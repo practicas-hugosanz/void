@@ -139,9 +139,86 @@ function sse_error(string $msg): void  { echo 'data: '.json_encode(['error'=>$ms
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// Helpers de conversión de mensajes multipart
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Convierte mensajes del formato genérico (OpenAI-like) al formato nativo de Anthropic.
+ * - image_url con data URI  →  {"type":"image","source":{"type":"base64",...}}
+ * - content string          →  sin cambios (string sigue siendo válido en Anthropic)
+ */
+function anthropic_convert_messages(array $messages): array {
+    $history = [];
+    foreach ($messages as $m) {
+        if ($m['role'] === 'system') continue; // system se maneja aparte
+        $content = $m['content'];
+        if (is_array($content)) {
+            $parts = [];
+            foreach ($content as $part) {
+                $type = $part['type'] ?? '';
+                if ($type === 'text') {
+                    $parts[] = ['type' => 'text', 'text' => $part['text'] ?? ''];
+                } elseif ($type === 'image_url') {
+                    $url = $part['image_url']['url'] ?? '';
+                    if (str_starts_with($url, 'data:')) {
+                        [$meta, $b64] = explode(',', $url, 2);
+                        preg_match('/data:([^;]+)/', $meta, $mt);
+                        $mime = $mt[1] ?? 'image/jpeg';
+                        $parts[] = [
+                            'type'   => 'image',
+                            'source' => ['type' => 'base64', 'media_type' => $mime, 'data' => $b64],
+                        ];
+                    }
+                }
+                // tipo desconocido: ignorar
+            }
+            if (!empty($parts)) {
+                $history[] = ['role' => $m['role'], 'content' => $parts];
+                continue;
+            }
+        }
+        $history[] = ['role' => $m['role'], 'content' => $content];
+    }
+    return $history;
+}
+
+/**
+ * Normaliza mensajes para OpenAI.
+ * OpenAI acepta el formato image_url nativamente, solo nos aseguramos
+ * de que el content sea array de parts cuando corresponde y que esté bien formado.
+ */
+function openai_convert_messages(array $messages): array {
+    $out = [];
+    foreach ($messages as $m) {
+        $content = $m['content'];
+        if (is_array($content)) {
+            $parts = [];
+            foreach ($content as $part) {
+                $type = $part['type'] ?? '';
+                if ($type === 'text') {
+                    $parts[] = ['type' => 'text', 'text' => $part['text'] ?? ''];
+                } elseif ($type === 'image_url') {
+                    $parts[] = [
+                        'type'      => 'image_url',
+                        'image_url' => ['url' => $part['image_url']['url'] ?? '', 'detail' => $part['image_url']['detail'] ?? 'auto'],
+                    ];
+                }
+            }
+            if (!empty($parts)) {
+                $out[] = ['role' => $m['role'], 'content' => $parts];
+                continue;
+            }
+        }
+        $out[] = $m;
+    }
+    return $out;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // OpenAI
 // ═══════════════════════════════════════════════════════════════════════════════
 function stream_openai(string $key, array $messages, string $model): void {
+    $messages = openai_convert_messages($messages);
     $sentDone = false; $sentChunk = false; $rawBuf = '';
     $ch = curl_init('https://api.openai.com/v1/chat/completions');
     curl_setopt_array($ch, [
@@ -206,11 +283,12 @@ function call_openai(string $key, array $messages, string $model = 'gpt-4o'): st
 // Anthropic
 // ═══════════════════════════════════════════════════════════════════════════════
 function stream_anthropic(string $key, array $messages, string $model): void {
-    $system = ''; $history = [];
+    // Extraer system prompt y convertir mensajes al formato nativo de Anthropic
+    $system  = '';
     foreach ($messages as $m) {
-        if ($m['role'] === 'system') { $system = is_string($m['content']) ? $m['content'] : ''; continue; }
-        $history[] = ['role'=>$m['role'],'content'=>$m['content']];
+        if ($m['role'] === 'system') { $system = is_string($m['content']) ? $m['content'] : ''; break; }
     }
+    $history = anthropic_convert_messages($messages);
     $body = ['model'=>$model,'max_tokens'=>4096,'stream'=>true,'messages'=>$history];
     if ($system) $body['system'] = $system;
 
@@ -262,11 +340,11 @@ function stream_anthropic(string $key, array $messages, string $model): void {
 }
 
 function call_anthropic(string $key, array $messages, string $model = 'claude-sonnet-4-6'): string {
-    $system = ''; $history = [];
+    $system  = '';
     foreach ($messages as $m) {
-        if ($m['role'] === 'system') { $system = $m['content']; continue; }
-        $history[] = $m;
+        if ($m['role'] === 'system') { $system = is_string($m['content']) ? $m['content'] : ''; break; }
     }
+    $history = anthropic_convert_messages($messages);
     $body = ['model'=>$model,'max_tokens'=>4096,'messages'=>$history];
     if ($system) $body['system'] = $system;
     $ch = curl_init('https://api.anthropic.com/v1/messages');
