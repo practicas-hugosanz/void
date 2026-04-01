@@ -592,7 +592,13 @@ const app = {
       const firstName = rawFirst ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1).toLowerCase() : '';
       inner.innerHTML = `<div id="chat-welcome" class="chat-welcome"><div class="chat-welcome-icon"><span class="chat-welcome-logo">VOID</span></div><h2>Hola, ${firstName}<br>¿Por dónde empezamos?</h2><p>Cuéntame qué tienes en mente — un problema, una idea, una pregunta.<br>Estoy aquí para ayudarte a pensar con claridad.</p></div>`;
     } else {
-      this.chatHistory.forEach((msg, idx) => this.appendMessageUI(msg.role, msg.content, idx));
+      this.chatHistory.forEach((msg, idx) => {
+        if (msg._files && msg._files.length > 0) {
+          this.appendMessageWithFiles(msg.role, msg._displayText || '', msg._files, idx);
+        } else {
+          this.appendMessageUI(msg.role, msg.content, idx);
+        }
+      });
       this.scrollToBottom();
     }
     this.updateSidebarHistory();
@@ -710,7 +716,11 @@ const app = {
 
     const fileContext = this.buildFileContextFrom(attachedFiles);
     const fullContent = text + fileContext;
-    this.chatHistory.push({ role: 'user', content: fullContent });
+    const msgFiles = attachedFiles.length > 0 ? attachedFiles.map(f => ({
+      name: f.name, isImage: f.isImage, isBinaryDoc: f.isBinaryDoc,
+      base64: f.base64 || null, mimeType: f.mimeType || null, content: f.content || null
+    })) : null;
+    this.chatHistory.push({ role: 'user', content: fullContent, _displayText: text, _files: msgFiles });
     const userMsgIdx = this.chatHistory.length - 1;
     this.appendMessageWithFiles('user', text || '📎 Archivos adjuntos', attachedFiles, userMsgIdx);
     await this.syncCurrentConv();
@@ -1398,9 +1408,12 @@ const app = {
 
     let attachHtml = '';
     if (files && files.length) {
-      attachHtml = '<div class="msg-attachments">' + files.map(f =>
-        `<span class="msg-attach-badge">${this.getFileIcon(f.name)} ${this.escapeHtml(f.name)}</span>`
-      ).join('') + '</div>';
+      attachHtml = '<div class="msg-attachments">' + files.map(f => {
+        if (f.isImage && f.base64) {
+          return `<span class="msg-attach-badge msg-attach-image"><img src="data:${f.mimeType || 'image/png'};base64,${f.base64}" style="max-width:220px;max-height:160px;border-radius:8px;display:block;margin-bottom:4px;" alt="${this.escapeHtml(f.name)}"><span style="font-size:11px;opacity:0.7">${this.escapeHtml(f.name)}</span></span>`;
+        }
+        return `<span class="msg-attach-badge">${this.getFileIcon(f.name)} ${this.escapeHtml(f.name)}</span>`;
+      }).join('') + '</div>';
     }
 
     const bubble = document.createElement('div');
