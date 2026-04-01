@@ -1010,15 +1010,16 @@ const app = {
     };
     marked.use({ renderer });
 
-    // Convertir (Fuente: URL1 y URL2) en iconos de clip con enlace
+    // Convertir (Fuente: URL1 y URL2) en iconos estéticos con enlace
+    const sourceIcon = `<svg viewBox="0 0 12 12" fill="none" stroke="#e8ff47" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;vertical-align:middle;display:inline-block"><path d="M5 2H2.5A.5.5 0 0 0 2 2.5v7a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V7"/><path d="M7.5 2H10v2.5"/><line x1="10" y1="2" x2="5.5" y2="6.5"/></svg>`;
     const processedText = text.trim().replace(
       /\(Fuente:\s*([^)]+)\)/gi,
       (_, sources) => sources.split(/\s+y\s+|\s*,\s*/i).map(url => {
         url = url.trim();
         const href = /^https?:\/\//i.test(url) ? url : 'https://' + url;
         const domain = url.replace(/^https?:\/\//i, '').replace(/\/.*/,'');
-        return `<a href="${href}" target="_blank" rel="noopener" title="${domain}" style="text-decoration:none;opacity:0.6;transition:opacity .2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">📎</a>`;
-      }).join(' ')
+        return `<a href="${href}" target="_blank" rel="noopener" title="${domain}" style="text-decoration:none;opacity:0.45;transition:opacity .2s;margin-left:3px" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.45">${sourceIcon}</a>`;
+      }).join('')
     );
 
     const parsed = marked.parse(processedText);
