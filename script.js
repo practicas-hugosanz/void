@@ -689,12 +689,16 @@ const app = {
 
     // Generar título con IA tras el primer intercambio completo
     const convIdx = this.conversations.findIndex(c => c.id === this.activeConvId);
-    if (convIdx !== -1 && !this.conversations[convIdx]._aiTitled && this.useProxy && responseText && !responseText.startsWith('⚠️')) {
+    const shouldGenerateTitle = convIdx !== -1 && !this.conversations[convIdx]._aiTitled && this.useProxy && responseText && !responseText.startsWith('⚠️');
+    if (shouldGenerateTitle) {
       this.conversations[convIdx]._aiTitled = true;
-      this._generateAiTitle(this.activeConvId);
     }
 
     await this.syncCurrentConv();
+
+    if (shouldGenerateTitle) {
+      this._generateAiTitle(this.activeConvId);
+    }
 
     this.isTyping = false;
     this.streamAbort = null;
