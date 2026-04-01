@@ -138,6 +138,22 @@ if (empty($messages)) json_err('Sin mensajes', 400);
 $dm = ['gemini'=>'gemini-2.5-flash','openai'=>'gpt-4o','anthropic'=>'claude-sonnet-4-6'];
 if (!$model) $model = $dm[$provider] ?? 'gemini-2.5-flash';
 
+// ─── Inyectar fecha/hora actual en el system prompt ───────────────────────────
+$now = new DateTimeImmutable('now', new DateTimeZone('Europe/Madrid'));
+$dateInfo = "\n[FECHA Y HORA ACTUAL: " . $now->format('l, d \d\e F \d\e Y, H:i') . " (zona horaria: Europa/Madrid)]";
+$hasSys = false;
+foreach ($messages as &$m) {
+    if ($m['role'] === 'system') {
+        $m['content'] = (is_string($m['content']) ? $m['content'] : '') . $dateInfo;
+        $hasSys = true;
+        break;
+    }
+}
+unset($m);
+if (!$hasSys) {
+    array_unshift($messages, ['role' => 'system', 'content' => 'Eres un asistente útil.' . $dateInfo]);
+}
+
 // ─── Búsqueda web (si está habilitada y hay key de Serper) ────────────────────
 if ($webSearch) {
     $serperKey = trim((string) getenv('SERPER_API_KEY'));
