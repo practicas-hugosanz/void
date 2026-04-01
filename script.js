@@ -594,7 +594,24 @@ const app = {
     } else {
       this.chatHistory.forEach((msg, idx) => {
         if (msg._files && msg._files.length > 0) {
+          // Tenemos metadatos de archivos guardados en memoria
           this.appendMessageWithFiles(msg.role, msg._displayText || '', msg._files, idx);
+        } else if (msg.role === 'user' && typeof msg.content === 'string' && msg.content.includes('[ARCHIVOS ADJUNTOS')) {
+          // Mensaje cargado del servidor sin metadatos: limpiar el texto feo
+          const cleanText = msg.content.replace(/\n\n\[ARCHIVOS ADJUNTOS[\s\S]*$/m, '').trim();
+          // Extraer nombres de archivos del contexto
+          const fileMatches = [...msg.content.matchAll(/[•]\s*(Imagen adjunta|Documento adjunto|Archivo):\s*([^\n]+)/g)];
+          const fakeFiles = fileMatches.map(m => ({
+            name: m[2].replace(/\s*\(.*\)$/, '').trim(),
+            isImage: m[1] === 'Imagen adjunta',
+            isBinaryDoc: m[1] === 'Documento adjunto',
+            base64: null, mimeType: null
+          }));
+          if (fakeFiles.length > 0) {
+            this.appendMessageWithFiles(msg.role, cleanText, fakeFiles, idx);
+          } else {
+            this.appendMessageUI(msg.role, cleanText, idx);
+          }
         } else {
           this.appendMessageUI(msg.role, msg.content, idx);
         }
@@ -718,7 +735,7 @@ const app = {
     const fullContent = text + fileContext;
     const msgFiles = attachedFiles.length > 0 ? attachedFiles.map(f => ({
       name: f.name, isImage: f.isImage, isBinaryDoc: f.isBinaryDoc,
-      base64: f.base64 || null, mimeType: f.mimeType || null, content: f.content || null
+      base64: f.base64 || null, mimeType: f.mimeType || null
     })) : null;
     this.chatHistory.push({ role: 'user', content: fullContent, _displayText: text, _files: msgFiles });
     const userMsgIdx = this.chatHistory.length - 1;
@@ -1410,9 +1427,10 @@ const app = {
     if (files && files.length) {
       attachHtml = '<div class="msg-attachments">' + files.map(f => {
         if (f.isImage && f.base64) {
-          return `<span class="msg-attach-badge msg-attach-image"><img src="data:${f.mimeType || 'image/png'};base64,${f.base64}" style="max-width:220px;max-height:160px;border-radius:8px;display:block;margin-bottom:4px;" alt="${this.escapeHtml(f.name)}"><span style="font-size:11px;opacity:0.7">${this.escapeHtml(f.name)}</span></span>`;
+          return `<span class="msg-attach-badge msg-attach-image" style="flex-direction:column;align-items:flex-start;padding:6px;"><img src="data:${f.mimeType || 'image/png'};base64,${f.base64}" style="max-width:220px;max-height:160px;border-radius:6px;display:block;margin-bottom:4px;" alt="${this.escapeHtml(f.name)}"><span style="font-size:11px;">${this.escapeHtml(f.name)}</span></span>`;
         }
-        return `<span class="msg-attach-badge">${this.getFileIcon(f.name)} ${this.escapeHtml(f.name)}</span>`;
+        const icon = f.isImage ? '🖼️' : this.getFileIcon(f.name);
+        return `<span class="msg-attach-badge">${icon} ${this.escapeHtml(f.name)}</span>`;
       }).join('') + '</div>';
     }
 

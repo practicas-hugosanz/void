@@ -1044,11 +1044,11 @@ body::before {
 }
 .msg-attach-badge {
   display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(0,0,0,0.15); border-radius: 8px;
-  padding: 5px 10px; font-size: 0.75rem;
+  background: var(--accent-dim); border: 1px solid rgba(232,255,71,0.3); border-radius: 8px;
+  padding: 5px 10px; font-size: 0.75rem; color: var(--accent);
 }
-.msg-bubble.user .msg-attach-badge { background: rgba(0,0,0,0.2); color: #000; }
-.msg-bubble.ai .msg-attach-badge { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+.msg-bubble.user .msg-attach-badge { background: rgba(0,0,0,0.25); border-color: rgba(0,0,0,0.15); color: #000; }
+.msg-bubble.ai .msg-attach-badge { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(232,255,71,0.3); }
 
 
 
