@@ -65,6 +65,7 @@ const app = {
   streamAbort: null,     // AbortController for active stream
   sidebarCollapsed: false,
   userMemory: '',        // Persistent memory injected into every system prompt
+  attachedFilesContext: [], // Archivos persistentes para toda la conversación
 
   async init() {
     this.initCursor();
@@ -159,6 +160,8 @@ const app = {
     const idx = this.conversations.findIndex(c => c.id === this.activeConvId);
     if (idx === -1) return;
     this.conversations[idx].messages = this.chatHistory;
+    // Mantener el contexto de archivos adjuntos en memoria
+    this.conversations[idx].attachedFilesContext = this.attachedFilesContext;
 
     // Título provisional basado en el primer mensaje del usuario
     const firstUser = this.chatHistory.find(m => m.role === 'user');
@@ -499,6 +502,7 @@ const app = {
     }
     this.activeConvId = null;
     this.chatHistory = [];
+    this.attachedFilesContext = [];
     this.renderChat();
     if (window.innerWidth < 900) this.closeSidebar();
   },
@@ -511,6 +515,7 @@ const app = {
     if (!conv) return;
     this.activeConvId = id;
     this.chatHistory = conv.messages;
+    this.attachedFilesContext = conv.attachedFilesContext || [];
     if (this.currentUser) localStorage.setItem('void_active_' + this.currentUser.email, id);
     this.renderChat();
     this.updateSidebarHistory();
@@ -653,6 +658,20 @@ const app = {
       this.conversations.push({ id, title: displayText.slice(0, 40) + (displayText.length > 40 ? '…' : ''), messages: [], createdAt: Date.now() });
     }
 
+    // Persistir archivos nuevos al contexto acumulado de la conversación
+    if (attachedFiles.length > 0) {
+      attachedFiles.forEach(f => {
+        // Guardar solo metadatos ligeros + contenido extraído (sin base64 de imágenes para no saturar BD)
+        const stored = { name: f.name, isImage: f.isImage, isBinaryDoc: f.isBinaryDoc, content: f.content || null };
+        if (f.isImage) { stored.base64 = f.base64; stored.mimeType = f.mimeType; }
+        if (f.pageImages) { stored.pageImages = f.pageImages; stored.pageCount = f.pageCount; }
+        // Evitar duplicados por nombre
+        const existing = this.attachedFilesContext.findIndex(x => x.name === f.name);
+        if (existing !== -1) this.attachedFilesContext[existing] = stored;
+        else this.attachedFilesContext.push(stored);
+      });
+    }
+
     const fileContext = this.buildFileContextFrom(attachedFiles);
     const fullContent = text + fileContext;
     this.chatHistory.push({ role: 'user', content: fullContent });
@@ -729,21 +748,22 @@ const app = {
       SYSTEM += '\n\n[MEMORIA DEL USUARIO]\n' + this.userMemory.trim();
     }
 
-    const history = this.chatHistory.slice(-10).map(m => ({
+    // ── Contexto ampliado: hasta 30 mensajes recientes ──────────────────────
+    const history = this.chatHistory.slice(-30).map(m => ({
       role: m.role === 'assistant' ? 'assistant' : 'user',
       content: m.content,
     }));
 
     const lastMsg = history[history.length - 1];
+
+    // ── Archivos del mensaje actual ──────────────────────────────────────────
     if (lastMsg && files && files.length) {
       const content = [];
       if (text) content.push({ type: 'text', text });
       files.forEach(f => {
         if (f.isImage && f.base64) {
-          // Imagen adjunta directa
           content.push({ type: 'image_url', image_url: { url: `data:${f.mimeType};base64,${f.base64}`, detail: 'auto' } });
         } else if (f.pageImages && f.pageImages.length) {
-          // PDF con páginas renderizadas — enviar texto + imágenes de cada página
           const totalPages = f.pageCount || f.pageImages.length;
           const label = `[PDF: ${f.name} — ${totalPages} páginas${totalPages > f.pageImages.length ? `, mostrando ${f.pageImages.length} como imágenes` : ''}]`;
           if (f.content) content.push({ type: 'text', text: `\n${label}\nTexto extraído:\n${f.content.slice(0, 15000)}` });
@@ -753,7 +773,6 @@ const app = {
             content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}`, detail: 'high' } });
           });
         } else if (f.content) {
-          // Texto extraído sin imágenes (DOCX, XLSX, TXT…)
           const label = f.isBinaryDoc ? `[Documento: ${f.name}]` : `[Archivo: ${f.name}]`;
           content.push({ type: 'text', text: `\n${label}\n${f.content.slice(0, 28000)}` });
         } else if (f.extracting) {
@@ -762,6 +781,23 @@ const app = {
       });
       if (!content.length) content.push({ type: 'text', text: text || '(Analiza los archivos adjuntos)' });
       lastMsg.content = content;
+    }
+
+    // ── Archivos persistentes de mensajes anteriores ─────────────────────────
+    // Si hay archivos en el contexto de la conversación que NO se han enviado
+    // en este mensaje, los inyectamos como recordatorio en el system prompt
+    const currentFileNames = new Set(files.map(f => f.name));
+    const previousFiles = this.attachedFilesContext.filter(f => !currentFileNames.has(f.name));
+    if (previousFiles.length > 0) {
+      let fileReminder = '\n\n[ARCHIVOS ADJUNTOS EN ESTA CONVERSACIÓN — disponibles para consulta]\n';
+      previousFiles.forEach(f => {
+        if (f.isImage) {
+          fileReminder += `• Imagen: ${f.name}\n`;
+        } else if (f.content) {
+          fileReminder += `• ${f.isBinaryDoc ? 'Documento' : 'Archivo'}: ${f.name}\n${f.content.slice(0, 8000)}\n`;
+        }
+      });
+      SYSTEM += fileReminder;
     }
 
     const messages = [{ role: 'system', content: SYSTEM }, ...history];
@@ -781,7 +817,7 @@ const app = {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, provider: this.apiProvider, model: this.apiModel || defaultModel(this.apiProvider), stream: true }),
+        body: JSON.stringify({ messages, provider: this.apiProvider, model: this.apiModel || defaultModel(this.apiProvider), stream: true, webSearch: true }),
         signal: controller.signal,
       });
 
@@ -812,6 +848,16 @@ const app = {
           try {
             const obj = JSON.parse(payload);
             if (obj.error) { this._renderMarkdownInBubble(bubble, '⚠️ ' + obj.error); return '⚠️ ' + obj.error; }
+            // Evento de estado: búsqueda web en curso
+            if (obj.status === 'searching') {
+              const bhWrap = bubble.querySelector('.streaming-bh-wrap');
+              if (bhWrap) {
+                const searchLabel = document.createElement('span');
+                searchLabel.className = 'void-searching-label';
+                searchLabel.textContent = '🔍 Buscando en la web…';
+                bhWrap.appendChild(searchLabel);
+              }
+            }
             if (obj.chunk) {
               fullText += obj.chunk;
               // Remove black hole animation wrap on first chunk
