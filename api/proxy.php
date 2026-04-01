@@ -115,15 +115,59 @@ if ((body()['action'] ?? '') === 'title') {
 }
 
 // ─── Chat normal ──────────────────────────────────────────────────────────────
-$messages = body()['messages'] ?? [];
-$doStream = body()['stream']   ?? true;
+$messages  = body()['messages']   ?? [];
+$doStream  = body()['stream']     ?? true;
+$webSearch = body()['webSearch']  ?? false;
 
 if (!$apiKey)         json_err('El servicio no está configurado. Contacta al administrador.', 503);
 if (empty($messages)) json_err('Sin mensajes', 400);
 
-
 $dm = ['gemini'=>'gemini-2.5-flash','openai'=>'gpt-4o','anthropic'=>'claude-sonnet-4-6'];
 if (!$model) $model = $dm[$provider] ?? 'gemini-2.5-flash';
+
+// ─── Inyectar fecha/hora actual siempre ───────────────────────────────────────
+$now      = new DateTimeImmutable('now', new DateTimeZone('Europe/Madrid'));
+$dateInfo = "\n[FECHA Y HORA ACTUAL: " . $now->format('l, d \d\e F \d\e Y, H:i') . " (zona horaria: Europa/Madrid)]";
+$hasSys   = false;
+foreach ($messages as &$m) {
+    if ($m['role'] === 'system') {
+        $m['content'] = (is_string($m['content']) ? $m['content'] : '') . $dateInfo;
+        $hasSys = true;
+        break;
+    }
+}
+unset($m);
+if (!$hasSys) {
+    array_unshift($messages, ['role' => 'system', 'content' => 'Eres un asistente útil.' . $dateInfo]);
+}
+
+// ─── Búsqueda web con Serper (si está habilitada) ─────────────────────────────
+if ($webSearch) {
+    $serperKey = trim((string) getenv('SERPER_API_KEY'));
+    if ($serperKey) {
+        $lastUserMsg = '';
+        foreach (array_reverse($messages) as $m) {
+            if ($m['role'] === 'user') {
+                $c = $m['content'];
+                $lastUserMsg = is_string($c) ? $c : (is_array($c) ? implode(' ', array_column(array_filter($c, fn($p) => ($p['type']??'') === 'text'), 'text')) : '');
+                break;
+            }
+        }
+        if (needs_web_search($lastUserMsg)) {
+            $searchResults = serper_search($serperKey, $lastUserMsg);
+            if ($searchResults) {
+                $searchContext = "\n\n[RESULTADOS DE BÚSQUEDA WEB — usa esta información actualizada para responder]\n" . $searchResults . "\n[FIN RESULTADOS]\nResponde siempre citando la fuente cuando uses estos datos.";
+                foreach ($messages as &$m) {
+                    if ($m['role'] === 'system') {
+                        $m['content'] = (is_string($m['content']) ? $m['content'] : '') . $searchContext;
+                        break;
+                    }
+                }
+                unset($m);
+            }
+        }
+    }
+}
 
 if ($doStream) {
     while (ob_get_level()) ob_end_clean();
@@ -541,3 +585,64 @@ function call_gemini(string $key, array $messages, string $model = 'gemini-2.5-f
 }
 
 
+
+// ─── Detección de necesidad de búsqueda web ───────────────────────────────────
+function needs_web_search(string $text): bool {
+    $text = mb_strtolower(trim($text));
+    if (strlen($text) < 5) return false;
+    $triggerWords = [
+        'hoy', 'ahora', 'actual', 'actualmente', 'últimas', 'último',
+        'reciente', 'precio', 'cotización', 'bolsa', 'noticias', 'noticia',
+        'quién es', 'quién fue', 'cuándo fue', 'cuándo es', 'estreno',
+        'lanzamiento', 'tiempo', 'temperatura', 'partido', 'resultado',
+        'marcador', 'today', 'latest', 'current', 'news', 'price', 'stock',
+        '2024', '2025', '2026', 'este año', 'este mes', 'esta semana',
+        'nuevo modelo', 'nueva versión', 'update', 'actualización',
+        'cuánto cuesta', 'cuanto cuesta', 'how much', 'fecha', 'día',
+    ];
+    foreach ($triggerWords as $w) {
+        if (str_contains($text, $w)) return true;
+    }
+    if (preg_match('/^(qué|que|what|who|quién|quien|cuándo|cuando|cuánto|cuanto|how much)\b/i', $text)) {
+        $skipPatterns = ['/código|code|función|function|algoritmo|algorithm|matemát|math|ecuación|equation|teor[íi]a|theory|cómo funciona|how does/i'];
+        foreach ($skipPatterns as $p) {
+            if (preg_match($p, $text)) return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+// ─── Búsqueda con Serper.dev ──────────────────────────────────────────────────
+function serper_search(string $key, string $query): string {
+    $query = preg_replace('/^(dime|cuéntame|explícame|sabes|sabes algo de|what is|tell me about)\s+/i', '', trim($query));
+    $query = mb_substr($query, 0, 200);
+    $ch = curl_init('https://google.serper.dev/search');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode(['q' => $query, 'num' => 5, 'gl' => 'es', 'hl' => 'es']),
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'X-API-KEY: ' . $key],
+        CURLOPT_TIMEOUT        => 8,
+    ]);
+    $raw = curl_exec($ch); $err = curl_error($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($err || !$raw || $code >= 400) return '';
+    $data = json_decode($raw, true);
+    if (empty($data)) return '';
+    $output = '';
+    if (!empty($data['answerBox']['answer']))        $output .= '**Respuesta directa:** ' . $data['answerBox']['answer'] . "\n\n";
+    elseif (!empty($data['answerBox']['snippet']))   $output .= '**Respuesta directa:** ' . $data['answerBox']['snippet'] . "\n\n";
+    if (!empty($data['knowledgeGraph']['description'])) $output .= '**Conocimiento:** ' . $data['knowledgeGraph']['description'] . "\n\n";
+    if (!empty($data['organic'])) {
+        $output .= "**Resultados web:**\n";
+        foreach (array_slice($data['organic'], 0, 4) as $r) {
+            $title = $r['title'] ?? ''; $snippet = $r['snippet'] ?? ''; $link = $r['link'] ?? '';
+            if ($title && $snippet) {
+                $output .= "- **{$title}**: {$snippet}";
+                if ($link) $output .= " (Fuente: {$link})";
+                $output .= "\n";
+            }
+        }
+    }
+    return trim($output);
+}
