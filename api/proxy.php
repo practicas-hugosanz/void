@@ -588,7 +588,7 @@ function call_gemini(string $key, array $messages, string $model = 'gemini-2.5-f
 
 // ─── Detección de necesidad de búsqueda web ───────────────────────────────────
 function needs_web_search(string $text): bool {
-    $text = mb_strtolower(trim($text));
+    $text = strtolower(trim($text));
     if (strlen($text) < 5) return false;
     $triggerWords = [
         'hoy', 'ahora', 'actual', 'actualmente', 'últimas', 'último',
@@ -616,7 +616,7 @@ function needs_web_search(string $text): bool {
 // ─── Búsqueda con Serper.dev ──────────────────────────────────────────────────
 function serper_search(string $key, string $query): string {
     $query = preg_replace('/^(dime|cuéntame|explícame|sabes|sabes algo de|what is|tell me about)\s+/i', '', trim($query));
-    $query = mb_substr($query, 0, 200);
+    $query = substr($query, 0, 200);
     $ch = curl_init('https://google.serper.dev/search');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
