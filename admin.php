@@ -337,9 +337,9 @@ tr:last-child td{border-bottom:none}tbody tr{transition:background .15s}tbody tr
 <div class="pg-sub">Vista general del sistema</div>
 <div class="sg4">
   <div class="sc sc-a"><div class="sl">Usuarios</div><div class="sv"><?= $stats['users'] ?></div><div class="ss">+<?= $stats['new_week'] ?> esta semana</div></div>
-  <div class="sc sc-b"><div class="sl">Conversaciones</div><div class="sv"><?= $stats['convs'] ?></div><div class="ss"><?= $stats['convs_today'] ?> hoy</div></div>
-  <div class="sc sc-p"><div class="sl">Mensajes</div><div class="sv"><?= number_format($stats['messages']) ?></div><div class="ss">en total</div></div>
-  <div class="sc sc-y"><div class="sl">Pendientes</div><div class="sv"><?= $stats['pending'] ?></div><div class="ss">solicitudes</div></div>
+  <div class="sc sc-a"><div class="sl">Conversaciones</div><div class="sv"><?= $stats['convs'] ?></div><div class="ss"><?= $stats['convs_today'] ?> hoy</div></div>
+  <div class="sc sc-a"><div class="sl">Mensajes</div><div class="sv"><?= number_format($stats['messages']) ?></div><div class="ss">en total</div></div>
+  <div class="sc sc-a"><div class="sl">Pendientes</div><div class="sv"><?= $stats['pending'] ?></div><div class="ss">solicitudes</div></div>
 </div>
 <div class="g2">
   <div class="card">
@@ -378,9 +378,9 @@ tr:last-child td{border-bottom:none}tbody tr{transition:background .15s}tbody tr
 <div class="pg-title">Solicitudes de acceso</div>
 <div class="pg-sub"><?= $stats['pending'] ?> pendientes · <?= $stats['approved'] ?> aprobadas · <?= $stats['rejected'] ?> rechazadas</div>
 <div class="sg3">
-  <div class="sc sc-y"><div class="sl">Pendientes</div><div class="sv"><?= $stats['pending'] ?></div></div>
-  <div class="sc sc-g"><div class="sl">Aprobadas</div><div class="sv"><?= $stats['approved'] ?></div></div>
-  <div class="sc sc-r"><div class="sl">Rechazadas</div><div class="sv"><?= $stats['rejected'] ?></div></div>
+  <div class="sc sc-a"><div class="sl">Pendientes</div><div class="sv"><?= $stats['pending'] ?></div></div>
+  <div class="sc sc-a"><div class="sl">Aprobadas</div><div class="sv"><?= $stats['approved'] ?></div></div>
+  <div class="sc sc-a"><div class="sl">Rechazadas</div><div class="sv"><?= $stats['rejected'] ?></div></div>
 </div>
 <div class="tw"><table>
   <thead><tr><th>Nombre</th><th>Email</th><th>Estado</th><th>Solicitado</th><th>Revisado</th><th>Acciones</th></tr></thead>
@@ -454,9 +454,9 @@ tr:last-child td{border-bottom:none}tbody tr{transition:background .15s}tbody tr
 <div class="pg-sub">Métricas globales del sistema</div>
 <div class="sg4">
   <div class="sc sc-a"><div class="sl">Usuarios totales</div><div class="sv"><?= $stats['users'] ?></div><div class="ss">+<?= $stats['new_week'] ?> últimos 7 días</div></div>
-  <div class="sc sc-b"><div class="sl">Conversaciones</div><div class="sv"><?= $stats['convs'] ?></div><div class="ss"><?= $stats['convs_today'] ?> en 24h</div></div>
-  <div class="sc sc-p"><div class="sl">Mensajes</div><div class="sv"><?= number_format($stats['messages']) ?></div><div class="ss">intercambiados</div></div>
-  <div class="sc sc-r"><div class="sl">Baneados</div><div class="sv"><?= $stats['banned'] ?></div><div class="ss">de <?= $stats['users'] ?> usuarios</div></div>
+  <div class="sc sc-a"><div class="sl">Conversaciones</div><div class="sv"><?= $stats['convs'] ?></div><div class="ss"><?= $stats['convs_today'] ?> en 24h</div></div>
+  <div class="sc sc-a"><div class="sl">Mensajes</div><div class="sv"><?= number_format($stats['messages']) ?></div><div class="ss">intercambiados</div></div>
+  <div class="sc sc-a"><div class="sl">Baneados</div><div class="sv"><?= $stats['banned'] ?></div><div class="ss">de <?= $stats['users'] ?> usuarios</div></div>
 </div>
 <div class="g2">
   <div class="card"><div class="card-hd">Uso por proveedor de IA</div><div class="bars">
@@ -547,6 +547,19 @@ document.getElementById('cmodal').addEventListener('click',e=>{if(e.target===e.c
 setTimeout(()=>{
   document.querySelectorAll('.bar-fill[data-w]').forEach(el=>{el.style.width=el.dataset.w+'%';});
 },120);
+
+// Convertir act-time a hora de España
+document.querySelectorAll('.act-time').forEach(el => {
+  const raw = el.textContent.trim();
+  if (!raw) return;
+  const d = new Date(raw.replace(' ', 'T') + 'Z');
+  if (isNaN(d)) return;
+  el.textContent = d.toLocaleString('es-ES', {
+    timeZone: 'Europe/Madrid',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+});
 </script>
 </body>
 </html>
