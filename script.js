@@ -141,7 +141,14 @@ const app = {
     this.activeConvId = localStorage.getItem('void_active_' + this.currentUser.email) || null;
     if (this.activeConvId) {
       const conv = this.conversations.find(c => c.id === this.activeConvId);
-      this.chatHistory = conv ? conv.messages : [];
+      if (conv) {
+        this.chatHistory = conv.messages;
+      } else {
+        // La conversación ya no existe en el servidor — resetear para no bloquear guardado
+        this.activeConvId = null;
+        this.chatHistory = [];
+        localStorage.removeItem('void_active_' + this.currentUser.email);
+      }
     }
 
     this.updateSidebarUser();
@@ -289,7 +296,32 @@ const app = {
     this.apiProvider = data.user.api_provider || 'gemini';
     this.apiModel = data.user.api_model || defaultModel(this.apiProvider);
     this.useProxy = true; // el servidor siempre tiene la key configurada
-    await this.loadState();
+    // Cargar conversaciones y memoria sin re-pedir /me (ya tenemos los datos del usuario)
+    this.sidebarCollapsed = localStorage.getItem('void_sidebar_' + this.currentUser.email) === 'true';
+    const convRes = await apiFetch(API.convs + '?action=list');
+    if (convRes.ok) {
+      this.conversations = convRes.data.map(c => ({
+        id: c.id, title: c.title, messages: c.messages,
+        createdAt: new Date(c.created_at).getTime()
+      }));
+    }
+    const memRes = await apiFetch(API.user + '?action=memory');
+    if (memRes.ok) this.userMemory = memRes.data.memory || '';
+    this.activeConvId = localStorage.getItem('void_active_' + this.currentUser.email) || null;
+    if (this.activeConvId) {
+      const conv = this.conversations.find(c => c.id === this.activeConvId);
+      if (conv) {
+        this.chatHistory = conv.messages;
+      } else {
+        // La conversación ya no existe en el servidor — resetear para no bloquear guardado
+        this.activeConvId = null;
+        this.chatHistory = [];
+        localStorage.removeItem('void_active_' + this.currentUser.email);
+      }
+    }
+    this.updateSidebarUser();
+    this.updateModelStatus();
+    if (this.sidebarCollapsed) this.applySidebarCollapse(true);
     this.showPage('chat');
     this.renderChat();
     this.showToast('Bienvenido, ' + data.user.name);
@@ -421,8 +453,8 @@ const app = {
     const passNew = document.getElementById('profile-pass-new').value;
     const passConfirm = document.getElementById('profile-pass-confirm').value;
 
-    if (!newName) { this.showToast('\u26a0\ufe0f El nombre no puede estar vac\xc3\xado'); return; }
-    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { this.showToast('\u26a0\ufe0f Email inv\xc3\xa1lido'); return; }
+    if (!newName) { this.showToast('⚠️ El nombre no puede estar vacío'); return; }
+    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { this.showToast('⚠️ Email inválido'); return; }
 
     // Profile fields
     const profileRes = await apiFetch(API.user + '?action=profile', {
@@ -432,7 +464,7 @@ const app = {
         password_current: passCurrent, password_new: passNew, password_confirm: passConfirm,
       }),
     });
-    if (!profileRes.ok) { this.showToast('\u26a0\ufe0f ' + profileRes.error); return; }
+    if (!profileRes.ok) { this.showToast('⚠️ ' + profileRes.error); return; }
 
     // Avatar (if changed)
     if (this._pendingAvatar !== null && this._pendingAvatar !== undefined) {
@@ -456,7 +488,7 @@ const app = {
       welcomeH2.innerHTML = 'Hola, ' + firstName + '<br>¿Por dónde empezamos?';
     }
     this.closeProfile();
-    this.showToast('Perfil actualizado \u2756');
+    this.showToast('Perfil actualizado ✦');
   },
 
   toggleSidebar() {
@@ -580,7 +612,11 @@ const app = {
 
     if (this.chatHistory.length > 0 && !this.activeConvId) {
       const firstMsg = this.chatHistory.find(m => m.role === 'user');
-      const title = firstMsg ? firstMsg.content.slice(0, 35) + '…' : 'Nueva conversación';
+      const _raw = firstMsg ? firstMsg.content : null;
+      const _plain = Array.isArray(_raw)
+        ? (_raw.find(p => p.type === 'text')?.text || 'Archivos adjuntos')
+        : (typeof _raw === 'string' ? _raw : 'Conversación');
+      const title = firstMsg ? _plain.slice(0, 35) + '…' : 'Nueva conversación';
       html += '<div class="sidebar-conv active" style="cursor:default;"><span class="sidebar-conv-icon">⚫</span><div class="sidebar-conv-text"><div class="sidebar-conv-title">' + this.escapeHtml(title) + '</div><div class="sidebar-conv-time">Actual</div></div></div>';
     }
 
@@ -1439,7 +1475,7 @@ const app = {
   copyMessage(idx) {
     const msg = this.chatHistory[idx];
     if (!msg) return;
-    navigator.clipboard.writeText(msg.content).then(() => this.showToast('\u2713 Copiado')).catch(() => this.showToast('No se pudo copiar'));
+    navigator.clipboard.writeText(msg.content).then(() => this.showToast('✓ Copiado')).catch(() => this.showToast('No se pudo copiar'));
   },
 
   startEditMessage(idx) {
@@ -1573,12 +1609,12 @@ const app = {
     const ta = document.getElementById('memory-textarea');
     if (!ta) return;
     const memory = ta.value.trim();
-    if (memory.length > 4000) { this.showToast('\u26a0\ufe0f Máximo 4000 caracteres'); return; }
+    if (memory.length > 4000) { this.showToast('⚠️ Máximo 4000 caracteres'); return; }
     const res = await apiFetch(API.user + '?action=memory', { method: 'PUT', body: JSON.stringify({ memory }) });
-    if (!res.ok) { this.showToast('\u26a0\ufe0f ' + res.error); return; }
+    if (!res.ok) { this.showToast('⚠️ ' + res.error); return; }
     this.userMemory = memory;
     this.closeMemory();
-    this.showToast('Memoria guardada \u2756');
+    this.showToast('Memoria guardada ✦');
   },
 
   clearMemory() {
