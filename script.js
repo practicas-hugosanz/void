@@ -716,7 +716,8 @@ const app = {
     await this.syncCurrentConv();
 
     if (shouldGenerateTitle) {
-      this._generateAiTitle(this.activeConvId);
+      // Esperar 4s antes de pedir el título — evita colisión de RPM con la petición del chat
+      setTimeout(() => this._generateAiTitle(this.activeConvId), 4000);
     }
 
     this.isTyping = false;

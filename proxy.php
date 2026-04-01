@@ -95,9 +95,7 @@ if ((body()['action'] ?? '') === 'title') {
         $excerpt .= "$role: " . substr($text, 0, 300) . "\n";
     }
 
-    $dm = ['gemini'=>'gemini-2.5-flash','openai'=>'gpt-4o','anthropic'=>'claude-haiku-4-5-20251001'];
-    if (!$model) $model = $dm[$provider] ?? 'gemini-2.5-flash';
-
+    // Para títulos siempre usar el modelo más ligero disponible — minimiza consumo de RPM
     $titlePrompt = [['role'=>'user','content'=>
         "Genera un título corto y descriptivo (3-6 palabras) para esta conversación.\n" .
         "El título debe describir el TEMA o RESULTADO, NO copiar literalmente lo que pidió el usuario.\n" .
@@ -105,9 +103,24 @@ if ((body()['action'] ?? '') === 'title') {
         "Malo (demasiado literal): 'Hazme 1+1', 'Corrígeme este código', 'Analiza este PDF'.\n" .
         "Responde SOLO con el título, sin comillas, sin puntuación final.\n\n$excerpt"]];
 
-    if ($provider === 'openai')        $title = call_openai($apiKey, $titlePrompt, $model);
-    elseif ($provider === 'anthropic') $title = call_anthropic($apiKey, $titlePrompt, $model);
-    else                               $title = call_gemini($apiKey, $titlePrompt, $model);
+    $titleModels = [
+        'gemini'    => ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-flash'],
+        'openai'    => ['gpt-4o-mini', 'gpt-4o'],
+        'anthropic' => ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6'],
+    ];
+    $modelsToTry = $titleModels[$provider] ?? [$dm[$provider] ?? 'gemini-2.5-flash'];
+
+    $title = '';
+    foreach ($modelsToTry as $tryModel) {
+        try {
+            if ($provider === 'openai')        $title = call_openai($apiKey, $titlePrompt, $tryModel);
+            elseif ($provider === 'anthropic') $title = call_anthropic($apiKey, $titlePrompt, $tryModel);
+            else                               $title = call_gemini_title($apiKey, $titlePrompt, $tryModel);
+            if ($title) break;
+        } catch (Throwable $e) {
+            continue;
+        }
+    }
 
     $title = trim(preg_replace('/^["\'\s«»]+|["\'\s»«]+$/', '', trim((string)$title)));
     if (!$title) $title = 'Conversación';
@@ -597,10 +610,49 @@ function call_gemini(string $key, array $messages, string $model = 'gemini-2.5-f
     json_err('Límite diario de Gemini alcanzado en todos los modelos. Inténtalo mañana.', 429);
 }
 
+/**
+ * Versión especial de call_gemini para títulos.
+ * - No llama a json_err en 429 (lanza excepción para que el caller pruebe otro modelo).
+ * - Espera 2s y reintenta una vez antes de rendirse.
+ */
+function call_gemini_title(string $key, array $messages, string $model): string {
+    for ($attempt = 0; $attempt < 2; $attempt++) {
+        if ($attempt > 0) sleep(2); // esperar antes de reintentar
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Web Search helpers
-// ═══════════════════════════════════════════════════════════════════════════════
+        $contents = []; $sys = null;
+        foreach ($messages as $msg) {
+            $role = $msg['role']; $text = is_string($msg['content']) ? $msg['content'] : '';
+            if ($role === 'system') { $sys = ['parts'=>[['text'=>$text]]]; continue; }
+            $contents[] = ['role'=>$role==='assistant'?'model':'user','parts'=>[['text'=>$text]]];
+        }
+        $body = ['contents'=>$contents, 'generationConfig'=>['maxOutputTokens'=>60]];
+        if ($sys) $body['systemInstruction'] = $sys;
+
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+             . urlencode($model).':generateContent?key='.urlencode($key);
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS     => json_encode($body),
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT        => 15,
+        ]);
+        $raw = curl_exec($ch); $err = curl_error($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+        if ($err || !$raw) continue;
+        $res = json_decode($raw, true);
+        if (!empty($res['error'])) {
+            $st = (int)($res['error']['code'] ?? $code);
+            if ($st === 429) continue; // reintentar / probar siguiente modelo
+            throw new RuntimeException('Gemini title error: ' . ($res['error']['message'] ?? 'unknown'));
+        }
+        $result = $res['candidates'][0]['content']['parts'][0]['text'] ?? '';
+        if ($result) return $result;
+    }
+    // Si llegamos aquí, lanzar excepción para que el caller pruebe el siguiente modelo
+    throw new RuntimeException('Gemini title 429 en modelo ' . $model);
+}
+
+
 
 /**
  * Detecta si la pregunta necesita información actualizada de la web.
