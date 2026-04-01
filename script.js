@@ -1010,7 +1010,18 @@ const app = {
     };
     marked.use({ renderer });
 
-    const parsed = marked.parse(text.trim());
+    // Convertir (Fuente: URL1 y URL2) en iconos de clip con enlace
+    const processedText = text.trim().replace(
+      /\(Fuente:\s*([^)]+)\)/gi,
+      (_, sources) => sources.split(/\s+y\s+|\s*,\s*/i).map(url => {
+        url = url.trim();
+        const href = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+        const domain = url.replace(/^https?:\/\//i, '').replace(/\/.*/,'');
+        return `<a href="${href}" target="_blank" rel="noopener" title="${domain}" style="text-decoration:none;opacity:0.6;transition:opacity .2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">📎</a>`;
+      }).join(' ')
+    );
+
+    const parsed = marked.parse(processedText);
     bubble.innerHTML = parsed.replace(/<p>\s*<\/p>\s*$/i, '');
     bubble.style.whiteSpace = 'normal';
     bubble.classList.add('markdown-fade-in');
